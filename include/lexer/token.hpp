@@ -22,6 +22,7 @@ enum class TokenType {
     BREAK,
     CONTINUE,
     RETURN,
+    CONST,
 
     LPAREN,		                        // (
     RPAREN,		                        // )
