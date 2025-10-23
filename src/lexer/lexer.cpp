@@ -27,6 +27,7 @@ std::map<std::string, TokenType> keywords = {
     {"break", TokenType::BREAK},
     {"continue", TokenType::CONTINUE},
     {"return", TokenType::RETURN},
+    {"const", TokenType::CONST},
 };
 
 std::vector<Token> Lexer::tokenize() {
@@ -81,7 +82,17 @@ Token Lexer::tokenize_number() {
 }
 
 Token Lexer::tokenize_string() {
-    //return Token();
+    std::string val;
+    int tmp_l = line;
+    int tmp_c = column;
+
+    advance();
+    while (pos < source_len && peek() != '"') {
+        val += advance();
+    }
+    advance();
+
+    return Token(TokenType::STRING_LIT, val, tmp_l, tmp_c);
 }
 
 Token Lexer::tokenize_char() {
@@ -93,7 +104,7 @@ Token Lexer::tokenize_id_or_keyword() {
     int tmp_l = line;
     int tmp_c = column;
 
-    while (std::isalpha(peek()) || peek() == '_' || std::isdigit(peek())) {
+    while (pos < source_len && (std::isalpha(peek()) || peek() == '_' || std::isdigit(peek()))) {
         val += advance();
     }
 
