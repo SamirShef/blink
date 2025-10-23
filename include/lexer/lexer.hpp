@@ -21,6 +21,7 @@ private:
   Token tokenize_char();
   Token tokenize_id_or_keyword();
   Token tokenize_op();
-  Token peek(int rpos) const;
-  Token advance();
+
+  const char peek(int rpos = 0) const;
+  const char advance();
 };
