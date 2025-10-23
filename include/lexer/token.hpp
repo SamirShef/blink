@@ -1,6 +1,6 @@
 #include <string>
 
-enum class TokenType { SIGNED, UNSIGNED, 
+enum class TokenType {
     CHAR,
     SHORT,
     INT,
@@ -8,45 +8,56 @@ enum class TokenType { SIGNED, UNSIGNED,
     FLOAT,
     DOUBLE,
     VOID,
- 
+
+    SIGNED,
+    UNSIGNED,
     TYPEDEF,
     STRUCT,
-  
     SIZEOF,
     IF,
     ELSE,
-    WHILE, 
+    WHILE,
     DO,
     FOR,
     BREAK,
     CONTINUE,
+    RETURN,
 
-    LPAREN,		// (
-    RPAREN,		// )
-    LBRACKET,		// [
-    RBRACKET,		// ]
-    LBRACE,		// {
-    RBRACE,		// }
+    LPAREN,		                        // (
+    RPAREN,		                        // )
+    LBRACKET,		                    // [
+    RBRACKET,		                    // ]
+    LBRACE,		                        // {
+    RBRACE,		                        // }
+    SEMICOLON,                          // ;
+    COLON,                              // :
 
-    PLUS,		// +
-    MINUS,		// -
-    MULT,		// *
-    DIV,		// /
-    MODULO,		// %
-    PLUS_EQ,		// +=
-    MINUS_EQ,		// -=
-    MULT_EQ,		// *=
-    DIV_EQ,		// /=
-    MODULO_EQ,		// %=
-    EQ,			// =
-    EQ_EQ,		// ==
-    NOT_EQ,		// !=
-    GT,			// >
-    GT_EQ,		// >=
-    LS,			// <
-    LS_EQ,		// <=
-    L_AND,		// &&
-    L_OR,		// ||
+    PLUS,		                        // +
+    MINUS,		                        // -
+    MULT,		                        // *
+    DIV,		                        // /
+    MODULO,		                        // %
+    PLUS_EQ,		                    // +=
+    MINUS_EQ,		                    // -=
+    MULT_EQ,		                    // *=
+    DIV_EQ,		                        // /=
+    MODULO_EQ,		                    // %=
+    EQ,			                        // =
+    EQ_EQ,		                        // ==
+    L_NOT,                              // !
+    B_NOT,                              // ~
+    NOT_EQ,		                        // !=
+    GT,			                        // >
+    GT_EQ,		                        // >=
+    LS,			                        // <
+    LS_EQ,		                        // <=
+    L_AND,		                        // &&
+    B_AND,                              // &
+    L_OR,		                        // ||
+    B_OR,		                        // |
+    B_XOR,                              // |
+    R_SHIFT,                            // >>
+    L_SHIFT,                            // <<
 
     CHAR_LIT,
     SHORT_LIT,
@@ -55,6 +66,8 @@ enum class TokenType { SIGNED, UNSIGNED,
     FLOAT_LIT,
     DOUBLE_LIT,
     STRING_LIT,
+
+    ID,
 };
 
 struct Token {
