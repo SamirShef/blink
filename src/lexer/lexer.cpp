@@ -96,7 +96,17 @@ Token Lexer::tokenize_string() {
 }
 
 Token Lexer::tokenize_char() {
-    //return Token();
+    std::string val;
+    int tmp_l = line;
+    int tmp_c = column;
+
+    advance();
+    while (pos < source_len && peek() != '\'') {
+        val += advance();
+    }
+    advance();
+
+    return Token(TokenType::CHAR_LIT, std::string{1, val[0]}, tmp_l, tmp_c);
 }
 
 Token Lexer::tokenize_id_or_keyword() {
