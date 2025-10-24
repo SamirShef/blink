@@ -1,3 +1,4 @@
+#include <memory>
 #include <string>
 #include <variant>
 
@@ -51,6 +52,9 @@ public:
     virtual ~Stmt() = default;
 };
 
+using ExprPtr = std::unique_ptr<Expr>;
+using StmtPtr = std::unique_ptr<Stmt>;
+
 class Literal : public Expr {
 public:
     Value value;
@@ -94,4 +98,14 @@ class DoubleLiteral : public Literal {
 public:
     DoubleLiteral(double v) : Literal(Value(v), Type(TypeValue::BUILTIN, "double")) {}
     ~DoubleLiteral() override = default;
+};
+
+class VarDeclExpr : public Expr {
+public:
+    Type type;
+    std::string name;
+    ExprPtr expr;
+
+    VarDeclExpr(Type t, std::string n, ExprPtr e) : type(t), name(n), expr(std::move(e)) {}
+    ~VarDeclExpr() override = default;
 };
