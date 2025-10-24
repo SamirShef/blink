@@ -1,4 +1,4 @@
-#include "../../include/lexer/lexer.hpp"
+#include <lexer/lexer.hpp>
 #include <cctype>
 #include <cstdlib>
 #include <iostream>
@@ -154,6 +154,15 @@ Token Lexer::tokenize_op() {
         case ':':
             advance();
             return Token(TokenType::COLON, ":", tmp_l, tmp_c);
+        case ',':
+            advance();
+            return Token(TokenType::COMMA, ",", tmp_l, tmp_c);
+        case '.':
+            advance();
+            return Token(TokenType::DOT, ".", tmp_l, tmp_c);
+        case '?':
+            advance();
+            return Token(TokenType::QUESTION, "?", tmp_l, tmp_c);
         case '+':
             advance();
             if (peek() == '=') {

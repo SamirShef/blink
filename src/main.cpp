@@ -1,4 +1,12 @@
-#include "../include/lexer/lexer.hpp"
+#include "codegen/codegen.hpp"
+#include <llvm/IR/GlobalVariable.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/LLVMContext.h>
+
+#include <lexer/lexer.hpp>
+#include <parser/parser.hpp>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -25,6 +33,15 @@ int main(int argc, char* argv[]) {
     for (Token token : tokens) {
         std::cout << token_to_string(token) << '\n';
     }
+
+    std::cout << "PARSING\n";
+
+    Parser parser(tokens);
+    std::vector<StmtPtr> stmts = parser.parse();
+
+    std::cout << "CODE GENERATING\n";
+    CodeGenerator codegen("cc", std::move(stmts));
+    codegen.generate();
 
     return 0;
 }

@@ -1,9 +1,10 @@
+#pragma once
 #include <memory>
 #include <string>
 #include <variant>
 
 enum class TypeValue {
-    BUILTIN, STRUCT, ENUM
+    CHAR, SHORT, INT, LONG, FLOAT, DOUBLE, STRUCT, ENUM
 };
 
 enum class TypeSpecifier {
@@ -66,46 +67,46 @@ public:
 
 class CharLiteral : public Literal {
 public:
-    CharLiteral(char v) : Literal(Value(v), Type(TypeValue::BUILTIN, "char")) {}
+    CharLiteral(char v) : Literal(Value(v), Type(TypeValue::CHAR, "char")) {}
     ~CharLiteral() override = default;
 };
 
 class ShortLiteral : public Literal {
 public:
-    ShortLiteral(short v) : Literal(Value(v), Type(TypeValue::BUILTIN, "short")) {}
+    ShortLiteral(short v) : Literal(Value(v), Type(TypeValue::SHORT, "short")) {}
     ~ShortLiteral() override = default;
 };
 
 class IntLiteral : public Literal {
 public:
-    IntLiteral(int v) : Literal(Value(v), Type(TypeValue::BUILTIN, "int")) {}
+    IntLiteral(int v) : Literal(Value(v), Type(TypeValue::INT, "int")) {}
     ~IntLiteral() override = default;
 };
 
 class LongLiteral : public Literal {
 public:
-    LongLiteral(long v) : Literal(Value(v), Type(TypeValue::BUILTIN, "long")) {}
+    LongLiteral(long v) : Literal(Value(v), Type(TypeValue::LONG, "long")) {}
     ~LongLiteral() override = default;
 };
 
 class FloatLiteral : public Literal {
 public:
-    FloatLiteral(float v) : Literal(Value(v), Type(TypeValue::BUILTIN, "float")) {}
+    FloatLiteral(float v) : Literal(Value(v), Type(TypeValue::FLOAT, "float")) {}
     ~FloatLiteral() override = default;
 };
 
 class DoubleLiteral : public Literal {
 public:
-    DoubleLiteral(double v) : Literal(Value(v), Type(TypeValue::BUILTIN, "double")) {}
+    DoubleLiteral(double v) : Literal(Value(v), Type(TypeValue::DOUBLE, "double")) {}
     ~DoubleLiteral() override = default;
 };
 
-class VarDeclExpr : public Expr {
+class VarDeclStmt : public Stmt {
 public:
     Type type;
     std::string name;
     ExprPtr expr;
 
-    VarDeclExpr(Type t, std::string n, ExprPtr e) : type(t), name(n), expr(std::move(e)) {}
-    ~VarDeclExpr() override = default;
+    VarDeclStmt(Type t, std::string n, ExprPtr e) : type(t), name(n), expr(std::move(e)) {}
+    ~VarDeclStmt() override = default;
 };

@@ -1,3 +1,4 @@
+#pragma once
 #include <string>
 
 enum class TokenType {
@@ -33,6 +34,9 @@ enum class TokenType {
     RBRACE,		                        // }
     SEMICOLON,                          // ;
     COLON,                              // :
+    COMMA,                              // ,
+    DOT,                                // .
+    QUESTION,                           // ?
 
     PLUS,		                        // +
     MINUS,		                        // -
