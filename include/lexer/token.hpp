@@ -13,6 +13,7 @@ enum class TokenType {
     UNSIGNED,
     TYPEDEF,
     STRUCT,
+    ENUM,
     SIZEOF,
     IF,
     ELSE,

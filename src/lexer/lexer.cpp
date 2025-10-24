@@ -18,6 +18,7 @@ std::map<std::string, TokenType> keywords = {
     {"unsigned", TokenType::UNSIGNED},
     {"typedef", TokenType::TYPEDEF},
     {"struct", TokenType::STRUCT},
+    {"enum", TokenType::ENUM},
     {"sizeof", TokenType::SIZEOF},
     {"if", TokenType::IF},
     {"else", TokenType::ELSE},
