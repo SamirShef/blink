@@ -7,13 +7,18 @@
 #include <llvm/IR/Value.h>
 
 #include <llvm/Support/Casting.h>
-#include <parser/ast.hpp>
-#include <codegen/codegen.hpp>
+#include <llvm/Support/raw_ostream.h>
+#include "../../include/parser/ast.hpp"
+#include "../../include/codegen/codegen.hpp"
 
 void CodeGenerator::generate() {
     for (StmtPtr& stmt : stmts) {
         generate_stmt(*stmt);
     }
+}
+
+void CodeGenerator::print_ir() const {
+    module->print(llvm::outs(), nullptr);
 }
 
 llvm::Type* CodeGenerator::get_llvm_type(Type type) {
@@ -48,7 +53,7 @@ void CodeGenerator::generate_var_decl_stmt(const VarDeclStmt& stmt) {
     else {
         var_init_val = llvm::Constant::getNullValue(var_type);
     }
-    llvm::GlobalVariable glob_var = llvm::GlobalVariable(var_type, stmt.type.is_const, llvm::GlobalValue::ExternalLinkage, llvm::dyn_cast<llvm::Constant>(var_init_val), stmt.name);
+    llvm::GlobalVariable* glob_var = new llvm::GlobalVariable(*module, var_type, stmt.type.is_const, llvm::GlobalValue::ExternalLinkage, llvm::dyn_cast<llvm::Constant>(var_init_val), stmt.name);
 }
 
 llvm::Value* CodeGenerator::generate_expr(const Expr& expr) {

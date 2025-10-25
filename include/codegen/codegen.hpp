@@ -5,7 +5,7 @@
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 
-#include <parser/ast.hpp>
+#include "../parser/ast.hpp"
 #include <string>
 #include <vector>
 
@@ -21,6 +21,7 @@ public:
                                                            stmts(std::move(s)) {}
 
     void generate();
+    void print_ir() const;
 
 private:
     llvm::Type* get_llvm_type(Type type);

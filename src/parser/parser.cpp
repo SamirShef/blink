@@ -1,6 +1,6 @@
-#include <parser/parser.hpp>
-#include <lexer/token.hpp>
-#include <parser/ast.hpp>
+#include "../../include/parser/parser.hpp"
+#include "../../include/lexer/token.hpp"
+#include "../../include/parser/ast.hpp"
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -54,9 +54,6 @@ StmtPtr Parser::parse_var_decl_stmt() {
     }
 
     consume(TokenType::SEMICOLON, "Expected ';'");
-
-    std::cout << "Var decl: " << var_name << "(" << (int)var_type.type << "&" << (var_type.is_const ? "c_" : "") << (var_type.is_unsigned ? "u_" : "s_")
-              << var_type.name << (var_type.is_pointer ? "*" : "") << ") = " << var_expr << '\n';
     
     return std::make_unique<VarDeclStmt>(var_type, var_name, std::move(var_expr));
 }

@@ -1,32 +1,21 @@
 cmake_minimum_required(VERSION 3.10)
-
-project(cc)
+project(ccompiler)
 
 find_package(LLVM REQUIRED CONFIG)
-
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_COMPILER clang++)
-set(CMAKE_C_COMPILER clang)
-
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
-set(CMAKE_BUILD_TYPE Release)
+message(STATUS "Found LLVM ${LLVM_VERSION}")
+message(STATUS "LLVM includes: ${LLVM_INCLUDE_DIRS}")
+message(STATUS "LLVM libraries: ${LLVM_LIBRARY_DIRS}")
 
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 
-add_executable(cc ${SOURCES})
+add_executable(mcc ${SOURCES})
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
-
-target_include_directories(сс PRIVATE ${LLVM_INCLUDE_DIRS})
-target_compile_definitions(сс PRIVATE ${LLVM_DEFINITIONS})
+target_include_directories(mcc PRIVATE ${LLVM_INCLUDE_DIRS})
+target_compile_definitions(mcc PRIVATE ${LLVM_DEFINITIONS})
 
 if (TARGET LLVM)
-    target_link_libraries(сс PRIVATE LLVM)
+    target_link_libraries(mcc PRIVATE LLVM)
 else()
     llvm_map_components_to_libnames(LLVM_LIBS all)
-    target_link_libraries(сс PRIVATE ${LLVM_LIBS})
+    target_link_libraries(mcc PRIVATE ${LLVM_LIBS})
 endif()

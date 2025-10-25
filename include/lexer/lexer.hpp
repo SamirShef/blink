@@ -1,5 +1,5 @@
 #pragma once
-#include <lexer/token.hpp>
+#include "token.hpp"
 #include <string>
 #include <vector>
 
