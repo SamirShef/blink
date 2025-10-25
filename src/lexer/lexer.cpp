@@ -75,8 +75,11 @@ Token Lexer::tokenize_number() {
         }
         val += advance();
     }
-
-    if (has_dot) {
+    if (std::tolower(peek()) == 'f') {
+        advance();
+        return Token(TokenType::FLOAT_LIT, val, tmp_l, tmp_c);
+    }
+    else if (has_dot) {
         return Token(TokenType::DOUBLE_LIT, val, tmp_l, tmp_c);
     }
     return Token(TokenType::INT_LIT, val, tmp_l, tmp_c);
@@ -255,14 +258,14 @@ Token Lexer::tokenize_op() {
             advance();
             return Token(TokenType::B_XOR, "^", tmp_l, tmp_c);
         default:
-            std::cerr << std::string("Unsupported operator: '") + c + "'";
+            std::cerr << "Unsupported operator: '" << (c == '\0') << "'\n";
             exit(1);
     }
 }
 
 const char Lexer::peek(int rpos) const {
     if (pos + rpos >= source_len) {
-        std::cerr << "Index out of range: (" + std::to_string(pos + rpos) + "/" + std::to_string(source_len) + ")\n";
+        std::cerr << "Index out of range: (" << pos + rpos << "/" << source_len << ")\n";
         exit(1);
     }
     return source[pos + rpos];

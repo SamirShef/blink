@@ -17,6 +17,9 @@ public:
 private:
     StmtPtr parse_stmt();
     StmtPtr parse_var_decl_stmt();
+    StmtPtr parse_func_decl_stmt();
+
+    Argument parse_argument();
 
     ExprPtr parse_expr();
     ExprPtr parse_l_or();
@@ -29,10 +32,10 @@ private:
     ExprPtr parse_primary();
 
     bool is_type(TokenType type) const;
-    TypeValue token_type_to_type_value(TokenType type) const;
-    Type consume_type(TypeSpecifier specifier = TypeSpecifier::NONE, bool is_const = false, bool is_unsigned = false);
+    TypeValue token_type_to_type_value(Token token) const;
+    Type consume_type();
     
     Token peek(int rpos = 0) const;
-    Token consume(TokenType type, std::string err_msg);
+    Token consume(TokenType type, std::string err_msg, int line, int column);
     bool match(TokenType type);
 };

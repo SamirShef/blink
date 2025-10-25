@@ -2,6 +2,7 @@
 #include <memory>
 #include <string>
 #include <variant>
+#include <vector>
 
 enum class TypeValue {
     CHAR, SHORT, INT, LONG, FLOAT, DOUBLE, STRUCT, ENUM
@@ -109,4 +110,22 @@ public:
 
     VarDeclStmt(Type t, std::string n, ExprPtr e) : type(t), name(n), expr(std::move(e)) {}
     ~VarDeclStmt() override = default;
+};
+
+struct Argument {
+    Type type;
+    std::string name;
+    ExprPtr expr;
+
+    Argument(Type t, std::string n, ExprPtr e) : type(t), name(n), expr(std::move(e)) {}
+};
+
+class FuncDeclStmt : public Stmt {
+public:
+    Type type;
+    std::string name;
+    std::vector<Argument> args;
+    std::vector<StmtPtr> block;
+
+    FuncDeclStmt(Type t, std::string n, std::vector<Argument> a, std::vector<StmtPtr> b) : type(t), name(n), args(std::move(a)), block(std::move(b)) {}
 };

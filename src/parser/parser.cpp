@@ -19,43 +19,66 @@ std::vector<StmtPtr> Parser::parse() {
 
 StmtPtr Parser::parse_stmt() {
     if (peek().type == TokenType::CONST || peek().type == TokenType::UNSIGNED || peek().type == TokenType::SIGNED || is_type(peek().type)) {
-        return parse_var_decl_stmt();
+        int tmp_pos = pos;
+        consume_type();
+        if (peek(1).type == TokenType::LPAREN) {
+            pos = tmp_pos;
+            return parse_func_decl_stmt();
+        }
+        else {
+            pos = tmp_pos;
+            return parse_var_decl_stmt();
+        }
     }
     else {
-        std::cerr << "Unsupported token '" + peek().value + "'\n";
+        std::cerr << "Unsupported token '" << peek().value << "'\n";
         exit(1);
     }
 }
 
 StmtPtr Parser::parse_var_decl_stmt() {
-    bool is_const = match(TokenType::CONST);
-    bool is_unsigned = false;
-    if (match(TokenType::UNSIGNED)) {
-        is_unsigned = true;
-    }
-    else if (match(TokenType::SIGNED)) {}
-    TypeSpecifier specifier = TypeSpecifier::NONE;
-    if (peek(1).type != TokenType::ID && (peek().type == TokenType::LONG || peek().type == TokenType::SHORT)) {
-        if (peek().type == TokenType::LONG) {
-            specifier = TypeSpecifier::LONG;
-        }
-        else {
-            specifier = TypeSpecifier::SHORT;
-        }
-        pos++;
-    }
-
-    Type var_type = consume_type(specifier, is_const, is_unsigned);
-    std::string var_name = consume(TokenType::ID, "Expected identifier").value;
+    Type var_type = consume_type();
+    std::string var_name = consume(TokenType::ID, "Expected identifier", peek().line, peek().column).value;
 
     ExprPtr var_expr = nullptr;
     if (match(TokenType::EQ)) {
         var_expr = parse_expr();
     }
 
-    consume(TokenType::SEMICOLON, "Expected ';'");
+    consume(TokenType::SEMICOLON, "Expected ';'", peek().line, peek().column);
     
     return std::make_unique<VarDeclStmt>(var_type, var_name, std::move(var_expr));
+}
+
+StmtPtr Parser::parse_func_decl_stmt() {
+    Type var_type = consume_type();
+    std::string var_name = consume(TokenType::ID, "Expected identifier", peek().line, peek().column).value;
+    consume(TokenType::LPAREN, "Expected '('", peek().line, peek().column);
+    std::vector<Argument> args;
+    while (!match(TokenType::RPAREN)) {
+        args.push_back(parse_argument());
+    }
+    consume(TokenType::LBRACE, "Expected '{'", peek().line, peek().column);
+    
+    std::vector<StmtPtr> block;
+    while (!match(TokenType::RBRACE)) {
+        block.push_back(parse_stmt());
+    }
+    
+    return std::make_unique<FuncDeclStmt>(var_type, var_name, std::move(args), std::move(block));
+}
+
+Argument Parser::parse_argument() {
+    Type arg_type = consume_type();
+    std::string arg_name = consume(TokenType::ID, "Expected identifier", peek().line, peek().column).value;
+    ExprPtr arg_expr = nullptr;
+    if (match(TokenType::EQ)) {
+        arg_expr = parse_expr();
+    }
+    if (peek().type != TokenType::RPAREN) {
+        consume(TokenType::COMMA, "Expected ','", peek().line, peek().column);
+    }
+    return Argument(arg_type, arg_name, std::move(arg_expr));
 }
 
 ExprPtr Parser::parse_expr() {
@@ -113,7 +136,7 @@ ExprPtr Parser::parse_primary() {
             pos++;
             return std::make_unique<DoubleLiteral>(std::stold(token.value));
         default:
-            std::cerr << "Unexpected token '" + token.value + "'\n";
+            std::cerr << "Unexpected token '" << token.value << "'\n";
             exit(1);
     }
 }
@@ -123,9 +146,9 @@ bool Parser::is_type(TokenType type) const {
         || type == TokenType::LONG || type == TokenType::FLOAT || type == TokenType::DOUBLE;
 }
 
-TypeValue Parser::token_type_to_type_value(TokenType type) const {
-    if (is_type(type)) {
-        switch (type) {
+TypeValue Parser::token_type_to_type_value(Token token) const {
+    if (is_type(token.type)) {
+        switch (token.type) {
             case TokenType::CHAR:
                 return TypeValue::CHAR;
             case TokenType::SHORT:
@@ -140,44 +163,60 @@ TypeValue Parser::token_type_to_type_value(TokenType type) const {
                 return TypeValue::DOUBLE;
         }
     }
-    else if (type == TokenType::STRUCT) {
+    else if (token.type == TokenType::STRUCT) {
         return TypeValue::STRUCT;
     }
-    else if (type == TokenType::ENUM) {
+    else if (token.type == TokenType::ENUM) {
         return TypeValue::ENUM;
     }
     else {
-        std::cerr << "Expected type\n";
+        std::cerr << "Expected type " << '(' << token.line << ':' << token.column << ')' << '\n';
         exit(1);
     }
 }
 
-Type Parser::consume_type(TypeSpecifier specifier, bool is_const, bool is_unsigned) {
+Type Parser::consume_type() {
+    bool is_const = match(TokenType::CONST);
+    bool is_unsigned = false;
+    if (match(TokenType::UNSIGNED)) {
+        is_unsigned = true;
+    }
+    else if (match(TokenType::SIGNED)) {}
+    TypeSpecifier specifier = TypeSpecifier::NONE;
+    if ((peek(1).type != TokenType::ID && peek(1).type != TokenType::MULT) && (peek().type == TokenType::LONG || peek().type == TokenType::SHORT)) {
+        if (peek().type == TokenType::LONG) {
+            specifier = TypeSpecifier::LONG;
+        }
+        else {
+            specifier = TypeSpecifier::SHORT;
+        }
+        pos++;
+    }
     Token token = peek();
     if (!is_type(token.type)) {
-        std::cerr << "Expected type\n";
+        std::cerr << "Expected type " << '(' << token.line << ':' << token.column << ')' << '\n';
         exit(1);
     }
     pos++;
     bool is_pointer = match(TokenType::MULT);
-    return Type(token_type_to_type_value(token.type), token.value, specifier, is_const, is_unsigned, is_pointer);
+    return Type(token_type_to_type_value(token), token.value, specifier, is_const, is_unsigned, is_pointer);
 }
 
 Token Parser::peek(int rpos) const {
     if (pos + rpos >= tokens_len) {
-        std::cerr << "Index out of range: (" + std::to_string(pos + rpos) + "/" + std::to_string(tokens_len) + ")\n";
+        std::cerr << "Index out of range: (" << pos + rpos << "/" << tokens_len << ")\n";
         exit(1);
     }
     return tokens[pos + rpos];
 }
 
-Token Parser::consume(TokenType type, std::string err_msg) {
+Token Parser::consume(TokenType type, std::string err_msg, int line, int column) {
     Token token = peek();
     if (token.type == type) {
         pos++;
         return token;
     }
-    std::cerr << err_msg << '\n';
+    std::cerr << err_msg << " (" << line << ':' << column << ')' << '\n';
     exit(1);
 }
 
