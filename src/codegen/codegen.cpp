@@ -124,6 +124,9 @@ void CodeGenerator::generate_stmt(const Stmt& stmt) {
     else if (auto fcs = dynamic_cast<const FuncCallStmt*>(&stmt)) {
         generate_func_call_stmt(*fcs);
     }
+    else if (auto vas = dynamic_cast<const VarAsgnStmt*>(&stmt)) {
+        generate_var_asgn_stmt(*vas);
+    }
     else if (auto rs = dynamic_cast<const ReturnStmt*>(&stmt)) {
         generate_return_stmt(*rs);
     }
@@ -144,12 +147,13 @@ void CodeGenerator::generate_var_decl_stmt(const VarDeclStmt& vds) {
     }
     if (blocks_deep == 0) {
         llvm::GlobalVariable* glob_var = new llvm::GlobalVariable(*module, var_type, vds.type.is_const, llvm::GlobalValue::ExternalLinkage, llvm::dyn_cast<llvm::Constant>(var_init_val), vds.name);
+        variables.top().emplace(vds.name, glob_var);
     }
     else {
         llvm::AllocaInst* local_var = builder.CreateAlloca(var_type, nullptr, vds.name);
         builder.CreateStore(var_init_val, local_var);
+        variables.top().emplace(vds.name, local_var);
     }
-    variables.top().emplace(vds.name, var_init_val);
 }
 
 void CodeGenerator::generate_func_decl_stmt(const FuncDeclStmt& fds) {
@@ -195,6 +199,38 @@ void CodeGenerator::generate_func_call_stmt(const FuncCallStmt& fcs) {
         args.push_back(generate_expr(*arg));
     }
     builder.CreateCall(functions[fcs.name], args, fcs.name + ".call");
+}
+
+void CodeGenerator::generate_var_asgn_stmt(const VarAsgnStmt& vas) {
+    llvm::Value* value = generate_expr(*vas.expr);
+    llvm::Value* var_ptr = nullptr;
+    bool have_var = false;
+    std::stack<std::map<std::string, llvm::Value*>> vars = variables;
+    while (!vars.empty()) {
+        std::map<std::string, llvm::Value*>& c_scope = vars.top();
+        auto varIt = c_scope.find(vas.name);
+        if (varIt != c_scope.end()) {
+            var_ptr = varIt->second;
+            have_var = true;
+            break;
+        }
+        vars.pop();
+    }
+    if (!have_var) {
+        std::cerr << "Variable '" << vas.name << "' does not exist\n";
+        exit(1);
+    }
+
+    llvm::Type* var_type;
+    if (auto global = llvm::dyn_cast<llvm::GlobalVariable>(var_ptr)) {
+        var_type = global->getValueType();
+    }
+    else if (auto local = llvm::dyn_cast<llvm::AllocaInst>(var_ptr)) {
+        var_type = local->getAllocatedType();
+    }
+    value = implicitly_cast(value, var_type);
+
+    builder.CreateStore(value, var_ptr);
 }
 
 void CodeGenerator::generate_return_stmt(const ReturnStmt& rs) {
@@ -382,7 +418,14 @@ llvm::Value* CodeGenerator::generate_var_expr(const VarExpr& ve) {
         std::map<std::string, llvm::Value*>& c_scope = vars.top();
         auto varIt = c_scope.find(ve.name);
         if (varIt != c_scope.end()) {
-            return varIt->second;
+            llvm::Type* type = nullptr;
+            if (auto global = llvm::dyn_cast<llvm::GlobalVariable>(varIt->second)) {
+                type = global->getValueType();
+            }
+            else if (auto local = llvm::dyn_cast<llvm::AllocaInst>(varIt->second)) {
+                type = local->getAllocatedType();
+            }
+            return builder.CreateLoad(type, varIt->second, ve.name + ".load");
         }
         vars.pop();
     }

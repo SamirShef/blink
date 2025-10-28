@@ -30,6 +30,9 @@ StmtPtr Parser::parse_stmt() {
         if (peek(1).type == TokenType::LPAREN) {
             return parse_func_call_stmt();
         }
+        else {
+            return parse_var_assignment_stmt();
+        }
     }
     else if (match(TokenType::RETURN)) {
         return parse_return_stmt();
@@ -95,6 +98,22 @@ StmtPtr Parser::parse_func_call_stmt() {
     }
     consume(TokenType::SEMICOLON, "Expected ';'", peek().line, peek().column);
     return std::make_unique<FuncCallStmt>(func_name, std::move(func_args));
+}
+
+StmtPtr Parser::parse_var_assignment_stmt() {
+    std::string var_name = consume(TokenType::ID, "Expected identifier", peek().line, peek().column).value;
+
+    Token op = peek();
+    ExprPtr expr = nullptr;
+    if (is_compound_assignment_operator(op.type)) {
+        expr = create_compound_assignment_operator(var_name);
+    }
+    else {
+        consume(TokenType::EQ, "Expected '='", op.line, op.column);
+        expr = parse_expr();
+    }
+    consume(TokenType::SEMICOLON, "Expected ';'", peek().line, peek().column);
+    return std::make_unique<VarAsgnStmt>(var_name, std::move(expr));
 }
 
 StmtPtr Parser::parse_return_stmt() {
@@ -300,6 +319,31 @@ ExprPtr Parser::parse_primary() {
     }
 }
 
+bool Parser::is_compound_assignment_operator(TokenType type) const {
+    return type == TokenType::PLUS_EQ || type == TokenType::MINUS_EQ || type == TokenType::MULT_EQ || type == TokenType::DIV_EQ || type == TokenType::MODULO_EQ;
+}
+
+ExprPtr Parser::create_compound_assignment_operator(std::string id) {
+    Token token = peek();
+    pos++;
+    switch (token.type) {
+        case TokenType::PLUS_EQ:
+            return std::make_unique<BinaryExpr>(TokenType::PLUS, std::make_unique<VarExpr>(id), parse_expr());
+        case TokenType::MINUS_EQ:
+            return std::make_unique<BinaryExpr>(TokenType::MINUS, std::make_unique<VarExpr>(id), parse_expr());
+        case TokenType::MULT_EQ:
+            return std::make_unique<BinaryExpr>(TokenType::MULT, std::make_unique<VarExpr>(id), parse_expr());
+        case TokenType::DIV_EQ:
+            return std::make_unique<BinaryExpr>(TokenType::DIV, std::make_unique<VarExpr>(id), parse_expr());
+        case TokenType::MODULO_EQ:
+            return std::make_unique<BinaryExpr>(TokenType::MODULO, std::make_unique<VarExpr>(id), parse_expr());
+        default: {
+            std::cerr << "Unsupported compound assignment operator (" << token.line << ':' << token.column << ')' << '\n';
+            exit(1);
+        }
+    }
+}
+
 bool Parser::is_type(TokenType type) const {
     return type == TokenType::I8 || type == TokenType::I16 || type == TokenType::I32 || type == TokenType::I64 || type == TokenType::F32 || type == TokenType::F64
         || type == TokenType::U8 || type == TokenType::U16 || type == TokenType::U32 || type == TokenType::U64 || type == TokenType::BOOL
@@ -347,7 +391,7 @@ TypeValue Parser::token_type_to_type_value(Token token) const {
         return TypeValue::ENUM;
     }
     else {
-        std::cerr << "Expected type " << '(' << token.line << ':' << token.column << ')' << '\n';
+        std::cerr << "Expected type (" << token.line << ':' << token.column << ')' << '\n';
         exit(1);
     }
 }
@@ -355,7 +399,7 @@ TypeValue Parser::token_type_to_type_value(Token token) const {
 Type Parser::consume_type(bool is_const) {
     Token token = peek();
     if (!is_type(token.type)) {
-        std::cerr << "Expected type " << '(' << token.line << ':' << token.column << ')' << '\n';
+        std::cerr << "Expected type (" << token.line << ':' << token.column << ')' << '\n';
         exit(1);
     }
     pos++;

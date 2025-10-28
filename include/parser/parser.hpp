@@ -19,6 +19,7 @@ private:
     StmtPtr parse_var_decl_stmt();
     StmtPtr parse_func_decl_stmt();
     StmtPtr parse_func_call_stmt();
+    StmtPtr parse_var_assignment_stmt();
     StmtPtr parse_return_stmt();
 
     Argument parse_argument();
@@ -33,6 +34,8 @@ private:
     ExprPtr parse_unary();
     ExprPtr parse_primary();
 
+    bool is_compound_assignment_operator(TokenType type) const;
+    ExprPtr create_compound_assignment_operator(std::string id);
     bool is_type(TokenType type) const;
     bool is_unsigned_type(TokenType type) const;
     TypeValue token_type_to_type_value(Token token) const;

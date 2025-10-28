@@ -1,0 +1,7 @@
+func main() : i32 {
+    var a: i32 = 123;
+    a = 2;
+    a *= 3;
+    printf("%d", a);
+    return 0;
+}

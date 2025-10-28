@@ -216,6 +216,15 @@ public:
     ~FuncCallStmt() override = default;
 };
 
+class VarAsgnStmt : public Stmt {
+public:
+    std::string name;
+    ExprPtr expr;
+
+    VarAsgnStmt(std::string n, ExprPtr e) : name(n), expr(std::move(e)) {}
+    ~VarAsgnStmt() override = default;
+};
+
 class ReturnStmt : public Stmt {
 public:
     ExprPtr expr;
