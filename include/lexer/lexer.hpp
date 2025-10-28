@@ -22,6 +22,8 @@ private:
     Token tokenize_char();
     Token tokenize_id_or_keyword();
     Token tokenize_op();
+    void skip_singleline_comment();
+    void skip_multiline_comment();
 
     const char peek(int rpos = 0) const;
     const char advance();

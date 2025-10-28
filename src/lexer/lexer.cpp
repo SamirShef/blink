@@ -43,6 +43,17 @@ std::vector<Token> Lexer::tokenize() {
         if (c == '\n' || c == ' ') {
             advance();
         }
+        else if (c == '/') {
+            if (peek(1) == '/') {
+                skip_singleline_comment();
+            }
+            else if (peek(1) == '*') {
+                skip_multiline_comment();
+            }
+            else {
+                tokens.push_back(tokenize_op());
+            }
+        }
         else if (std::isdigit(c)) {
             tokens.push_back(tokenize_number());
         }
@@ -261,9 +272,25 @@ Token Lexer::tokenize_op() {
             advance();
             return Token(TokenType::B_XOR, "^", tmp_l, tmp_c);
         default:
-            std::cerr << "Unsupported operator: '" << (c == '\0') << "'\n";
+            std::cerr << "Unsupported operator: '" << c << "' (" << line << ':' << column << ")\n";
             exit(1);
     }
+}
+
+void Lexer::skip_singleline_comment() {
+    while (peek() != '\n') {
+        advance();
+    }
+    advance();
+}
+
+void Lexer::skip_multiline_comment() {
+    advance();
+    advance();
+    while (peek() != '/' || peek(-1) != '*') {
+        advance();
+    }
+    advance();
 }
 
 const char Lexer::peek(int rpos) const {
