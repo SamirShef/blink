@@ -407,7 +407,10 @@ llvm::Value* CodeGenerator::generate_func_call_expr(const FuncCallExpr& fce) {
 llvm::Value* CodeGenerator::implicitly_cast(llvm::Value* value, llvm::Type* expected_type) {
     llvm::Type* value_type = value->getType();
 
-    if (value_type->isIntegerTy() && expected_type->isIntegerTy()) {
+    if (value_type == expected_type)  {
+        return value;
+    }
+    else if (value_type->isIntegerTy() && expected_type->isIntegerTy()) {
         unsigned long value_width = value_type->getIntegerBitWidth();
         unsigned long expected_width = expected_type->getIntegerBitWidth();
 

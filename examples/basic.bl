@@ -1,5 +1,6 @@
 func main() : i32 {
     const str: i8* = "Hello world!";
     var c: i8 = '1';
+    printf("%s %c", str, c);
     return 0;
 }

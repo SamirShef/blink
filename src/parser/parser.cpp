@@ -247,10 +247,7 @@ ExprPtr Parser::parse_primary() {
     switch (token.type) {
         case TokenType::I8_LIT:
             pos++;
-            if (std::isdigit(token.value[0])) {
-                return std::make_unique<I8Literal>(std::stoll(token.value));;
-            }
-            return std::make_unique<I8Literal>((std::int8_t)(token.value[0]));
+            return std::make_unique<I8Literal>(token.value[0]);
         case TokenType::I16_LIT:
             pos++;
             return std::make_unique<I16Literal>(std::stoll(token.value));
@@ -268,9 +265,6 @@ ExprPtr Parser::parse_primary() {
             return std::make_unique<F64Literal>(std::stold(token.value));
         case TokenType::U8_LIT:
             pos++;
-            if (std::isdigit(token.value[0])) {
-                return std::make_unique<U8Literal>(std::stoll(token.value));;
-            }
             return std::make_unique<U8Literal>((std::uint8_t)(token.value[0]));
         case TokenType::U16_LIT:
             pos++;
