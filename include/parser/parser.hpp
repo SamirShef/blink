@@ -20,6 +20,7 @@ private:
     StmtPtr parse_func_decl_stmt();
     StmtPtr parse_func_call_stmt();
     StmtPtr parse_var_assignment_stmt();
+    StmtPtr parse_if_stmt();
     StmtPtr parse_return_stmt();
 
     Argument parse_argument();

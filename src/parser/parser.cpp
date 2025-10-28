@@ -34,11 +34,14 @@ StmtPtr Parser::parse_stmt() {
             return parse_var_assignment_stmt();
         }
     }
+    else if (match(TokenType::IF)) {
+        return parse_if_stmt();
+    }
     else if (match(TokenType::RETURN)) {
         return parse_return_stmt();
     }
     else {
-        std::cerr << "Unsupported token '" << peek().value << "'\n";
+        std::cerr << "Unsupported token '" << peek().value << "' (" << peek().line << ':' << peek().column << ')' << '\n';
         exit(1);
     }
 }
@@ -114,6 +117,35 @@ StmtPtr Parser::parse_var_assignment_stmt() {
     }
     consume(TokenType::SEMICOLON, "Expected ';'", peek().line, peek().column);
     return std::make_unique<VarAsgnStmt>(var_name, std::move(expr));
+}
+
+StmtPtr Parser::parse_if_stmt() {
+    consume(TokenType::LPAREN, "Expected '('", peek().line, peek().column);
+    ExprPtr condition = parse_expr();
+    consume(TokenType::RPAREN, "Expected ')'", peek().line, peek().column);
+
+    std::vector<StmtPtr> true_block;
+    if (!match(TokenType::LBRACE)) {
+        true_block.push_back(parse_stmt());
+    }
+    else {
+        while (!match(TokenType::RBRACE)) {
+            true_block.push_back(parse_stmt());
+        }
+    }
+    std::vector<StmtPtr> false_block;
+    if (match(TokenType::ELSE)) {
+        if (!match(TokenType::LBRACE)) {
+            false_block.push_back(parse_stmt());
+        }
+        else {
+            while (!match(TokenType::RBRACE)) {
+                false_block.push_back(parse_stmt());
+            }
+        }
+    }
+
+    return std::make_unique<IfStmt>(std::move(condition), std::move(true_block), std::move(false_block));
 }
 
 StmtPtr Parser::parse_return_stmt() {
@@ -314,7 +346,7 @@ ExprPtr Parser::parse_primary() {
             }
             return std::make_unique<VarExpr>(token.value);
         default:
-            std::cerr << "Unexpected token '" << token.value << "'\n";
+            std::cerr << "Unexpected token '" << token.value << "' (" << token.line << ':' << token.column << ')' << '\n';
             exit(1);
     }
 }

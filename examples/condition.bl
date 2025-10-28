@@ -1,0 +1,14 @@
+func main() : i32 {
+    var cond: i32 = 0;
+
+    if (2 == 1) {
+        printf("Yes!");
+    }
+    else if (cond) {
+        printf("Not first!");
+    }
+    else {
+        printf("Not all!");
+    }
+    return 0;
+}

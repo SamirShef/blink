@@ -127,6 +127,9 @@ void CodeGenerator::generate_stmt(const Stmt& stmt) {
     else if (auto vas = dynamic_cast<const VarAsgnStmt*>(&stmt)) {
         generate_var_asgn_stmt(*vas);
     }
+    else if (auto is = dynamic_cast<const IfStmt*>(&stmt)) {
+        generate_if_stmt(*is);
+    }
     else if (auto rs = dynamic_cast<const ReturnStmt*>(&stmt)) {
         generate_return_stmt(*rs);
     }
@@ -231,6 +234,39 @@ void CodeGenerator::generate_var_asgn_stmt(const VarAsgnStmt& vas) {
     value = implicitly_cast(value, var_type);
 
     builder.CreateStore(value, var_ptr);
+}
+
+void CodeGenerator::generate_if_stmt(const IfStmt& is) {
+    llvm::Value* cond = generate_expr(*is.condition);
+    llvm::Function* func = builder.GetInsertBlock()->getParent();
+    
+    llvm::BasicBlock* true_bb = llvm::BasicBlock::Create(context, "then", func);
+    llvm::BasicBlock* false_bb = llvm::BasicBlock::Create(context, "else", func);
+    llvm::BasicBlock* merge_bb = llvm::BasicBlock::Create(context, "merge", func);
+
+    builder.CreateCondBr(cond, true_bb, false_bb ? false_bb : merge_bb);
+
+    builder.SetInsertPoint(true_bb);
+    variables.push({});
+    for (const StmtPtr& stmt : is.true_block) {
+        generate_stmt(*stmt);
+    }
+    variables.pop();
+
+    if (builder.GetInsertBlock()->getTerminator() == nullptr) {
+        builder.CreateBr(merge_bb);
+    }
+    builder.SetInsertPoint(false_bb);
+    variables.push({});
+    for (const StmtPtr& stmt : is.false_block) {
+        generate_stmt(*stmt);
+    }
+    variables.pop();
+    
+    if (builder.GetInsertBlock()->getTerminator() == nullptr) {
+        builder.CreateBr(merge_bb);
+    }
+    builder.SetInsertPoint(merge_bb);
 }
 
 void CodeGenerator::generate_return_stmt(const ReturnStmt& rs) {

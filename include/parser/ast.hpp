@@ -225,6 +225,16 @@ public:
     ~VarAsgnStmt() override = default;
 };
 
+class IfStmt : public Stmt {
+public:
+    ExprPtr condition;
+    std::vector<StmtPtr> true_block;
+    std::vector<StmtPtr> false_block;
+
+    IfStmt(ExprPtr c, std::vector<StmtPtr> t, std::vector<StmtPtr> f) : condition(std::move(c)), true_block(std::move(t)), false_block(std::move(f)) {}
+    ~IfStmt() override = default;
+};
+
 class ReturnStmt : public Stmt {
 public:
     ExprPtr expr;

@@ -40,6 +40,7 @@ private:
     void generate_func_decl_stmt(const FuncDeclStmt& fds);
     void generate_func_call_stmt(const FuncCallStmt& fcs);
     void generate_var_asgn_stmt(const VarAsgnStmt& vas);
+    void generate_if_stmt(const IfStmt& is);
     void generate_return_stmt(const ReturnStmt& rs);
 
     llvm::Value* generate_expr(const Expr& expr);
