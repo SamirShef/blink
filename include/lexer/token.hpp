@@ -2,18 +2,23 @@
 #include <string>
 
 enum class TokenType {
-    CHAR,
-    SHORT,
-    INT,
-    LONG,
-    FLOAT,
-    DOUBLE,
-    VOID,
+    I8,
+    I16,
+    I32,
+    I64,
+    F32,
+    F64,
+    U8,
+    U16,
+    U32,
+    U64,
+    BOOL,
+    NOTHING,
 
-    SIGNED,
-    UNSIGNED,
-    TYPEDEF,
-    STRUCT,
+    VAR,
+    CONST,
+    FUNC,
+    CLASS,
     ENUM,
     SIZEOF,
     IF,
@@ -24,7 +29,6 @@ enum class TokenType {
     BREAK,
     CONTINUE,
     RETURN,
-    CONST,
 
     LPAREN,		                        // (
     RPAREN,		                        // )
@@ -65,12 +69,17 @@ enum class TokenType {
     R_SHIFT,                            // >>
     L_SHIFT,                            // <<
 
-    CHAR_LIT,
-    SHORT_LIT,
-    INT_LIT,
-    LONG_LIT,
-    FLOAT_LIT,
-    DOUBLE_LIT,
+    I8_LIT,
+    I16_LIT,
+    I32_LIT,
+    I64_LIT,
+    F32_LIT,
+    F64_LIT,
+    U8_LIT,
+    U16_LIT,
+    U32_LIT,
+    U64_LIT,
+    BOOL_LIT,
     STRING_LIT,
 
     ID,

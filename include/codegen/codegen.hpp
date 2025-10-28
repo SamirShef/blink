@@ -1,4 +1,5 @@
 #pragma once
+#include <llvm/IR/Function.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/IRBuilder.h>
@@ -7,6 +8,7 @@
 
 #include "../parser/ast.hpp"
 #include <map>
+#include <stack>
 #include <string>
 #include <vector>
 
@@ -17,11 +19,14 @@ private:
     std::unique_ptr<llvm::Module> module;
     std::vector<StmtPtr> stmts;
     unsigned blocks_deep;
-    std::map<std::string, llvm::Type*> variables;
+    std::stack<std::map<std::string, llvm::Value*>> variables;
+    std::map<std::string, llvm::Function*> functions;
 
 public:
     CodeGenerator(std::string n, std::vector<StmtPtr> s) : context(), builder(context), module(std::make_unique<llvm::Module>(n, context)),
-                                                           stmts(std::move(s)), blocks_deep(0) {}
+                                                           stmts(std::move(s)), blocks_deep(0) {
+        variables.push({});
+    }
 
     void generate();
     std::unique_ptr<llvm::Module> get_module();
@@ -33,7 +38,14 @@ private:
     void generate_stmt(const Stmt& stmt);
     void generate_var_decl_stmt(const VarDeclStmt& vds);
     void generate_func_decl_stmt(const FuncDeclStmt& fds);
+    void generate_func_call_stmt(const FuncCallStmt& fcs);
+    void generate_return_stmt(const ReturnStmt& rs);
 
     llvm::Value* generate_expr(const Expr& expr);
-    llvm::Value* generate_literal(const Literal& literal);
+    llvm::Value* generate_literal(const Literal& lit);
+    llvm::Value* generate_binary_expr(const BinaryExpr& be);
+    llvm::Value* generate_unary_expr(const UnaryExpr& ue);
+    llvm::Value* generate_var_expr(const VarExpr& ve);
+    llvm::Value* generate_func_call_expr(const FuncCallExpr& fce);
+    llvm::Value* implicitly_cast(llvm::Value* value, llvm::Type* expected_type);
 };

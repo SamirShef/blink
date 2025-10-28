@@ -6,18 +6,23 @@
 #include <string>
 
 std::map<std::string, TokenType> keywords = {
-    {"char", TokenType::CHAR},
-    {"short", TokenType::SHORT},
-    {"int", TokenType::INT},
-    {"long", TokenType::LONG},
-    {"float", TokenType::FLOAT},
-    {"double", TokenType::DOUBLE},
-    {"void", TokenType::VOID},
+    {"i8", TokenType::I8},
+    {"i16", TokenType::I16},
+    {"i32", TokenType::I32},
+    {"i64", TokenType::I64},
+    {"f32", TokenType::F32},
+    {"f64", TokenType::F64},
+    {"u8", TokenType::U8},
+    {"u16", TokenType::U16},
+    {"u32", TokenType::U32},
+    {"u64", TokenType::U64},
+    {"bool", TokenType::BOOL},
+    {"nothing", TokenType::NOTHING},
 
-    {"signed", TokenType::SIGNED},
-    {"unsigned", TokenType::UNSIGNED},
-    {"typedef", TokenType::TYPEDEF},
-    {"struct", TokenType::STRUCT},
+    {"var", TokenType::VAR},
+    {"const", TokenType::CONST},
+    {"func", TokenType::FUNC},
+    {"class", TokenType::CLASS},
     {"enum", TokenType::ENUM},
     {"sizeof", TokenType::SIZEOF},
     {"if", TokenType::IF},
@@ -28,7 +33,6 @@ std::map<std::string, TokenType> keywords = {
     {"break", TokenType::BREAK},
     {"continue", TokenType::CONTINUE},
     {"return", TokenType::RETURN},
-    {"const", TokenType::CONST},
 };
 
 std::vector<Token> Lexer::tokenize() {
@@ -75,14 +79,10 @@ Token Lexer::tokenize_number() {
         }
         val += advance();
     }
-    if (std::tolower(peek()) == 'f') {
-        advance();
-        return Token(TokenType::FLOAT_LIT, val, tmp_l, tmp_c);
+    if (has_dot) {
+        return Token(TokenType::F64_LIT, val, tmp_l, tmp_c);
     }
-    else if (has_dot) {
-        return Token(TokenType::DOUBLE_LIT, val, tmp_l, tmp_c);
-    }
-    return Token(TokenType::INT_LIT, val, tmp_l, tmp_c);
+    return Token(TokenType::I32_LIT, val, tmp_l, tmp_c);
 }
 
 Token Lexer::tokenize_string() {
@@ -110,7 +110,7 @@ Token Lexer::tokenize_char() {
     }
     advance();
 
-    return Token(TokenType::CHAR_LIT, std::string{1, val[0]}, tmp_l, tmp_c);
+    return Token(TokenType::I8_LIT, val, tmp_l, tmp_c);
 }
 
 Token Lexer::tokenize_id_or_keyword() {
@@ -124,6 +124,9 @@ Token Lexer::tokenize_id_or_keyword() {
 
     if (keywords.find(val) != keywords.end()) {
         return Token(keywords[val], val, tmp_l, tmp_c);
+    }
+    else if (val == "true" || val == "false") {
+        return Token(TokenType::BOOL_LIT, val, tmp_l, tmp_c);
     }
     return Token(TokenType::ID, val, tmp_l, tmp_c);
 }

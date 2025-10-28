@@ -1,6 +1,8 @@
 #include "../../include/parser/parser.hpp"
 #include "../../include/lexer/token.hpp"
 #include "../../include/parser/ast.hpp"
+#include <cctype>
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -18,17 +20,19 @@ std::vector<StmtPtr> Parser::parse() {
 }
 
 StmtPtr Parser::parse_stmt() {
-    if (peek().type == TokenType::CONST || peek().type == TokenType::UNSIGNED || peek().type == TokenType::SIGNED || is_type(peek().type)) {
-        int tmp_pos = pos;
-        consume_type();
+    if (peek().type == TokenType::CONST || peek().type == TokenType::VAR) {
+        return parse_var_decl_stmt();
+    }
+    else if (match(TokenType::FUNC)) {
+        return parse_func_decl_stmt();
+    }
+    else if (peek().type == TokenType::ID) {
         if (peek(1).type == TokenType::LPAREN) {
-            pos = tmp_pos;
-            return parse_func_decl_stmt();
+            return parse_func_call_stmt();
         }
-        else {
-            pos = tmp_pos;
-            return parse_var_decl_stmt();
-        }
+    }
+    else if (match(TokenType::RETURN)) {
+        return parse_return_stmt();
     }
     else {
         std::cerr << "Unsupported token '" << peek().value << "'\n";
@@ -37,8 +41,14 @@ StmtPtr Parser::parse_stmt() {
 }
 
 StmtPtr Parser::parse_var_decl_stmt() {
-    Type var_type = consume_type();
+    bool is_const = false;
+    if (match(TokenType::CONST)) {
+        is_const = true;
+    }
+    else if (match(TokenType::VAR)) {}
     std::string var_name = consume(TokenType::ID, "Expected identifier", peek().line, peek().column).value;
+    consume(TokenType::COLON, "Expected ':'", peek().line, peek().column);
+    Type var_type = consume_type(is_const);
 
     ExprPtr var_expr = nullptr;
     if (match(TokenType::EQ)) {
@@ -51,13 +61,18 @@ StmtPtr Parser::parse_var_decl_stmt() {
 }
 
 StmtPtr Parser::parse_func_decl_stmt() {
-    Type var_type = consume_type();
     std::string var_name = consume(TokenType::ID, "Expected identifier", peek().line, peek().column).value;
     consume(TokenType::LPAREN, "Expected '('", peek().line, peek().column);
     std::vector<Argument> args;
     while (!match(TokenType::RPAREN)) {
         args.push_back(parse_argument());
     }
+    consume(TokenType::COLON, "Expected ':'", peek().line, peek().column);
+    bool is_const = false;
+    if (match(TokenType::CONST)) {
+        is_const = true;
+    }
+    Type var_type = consume_type(is_const);
     consume(TokenType::LBRACE, "Expected '{'", peek().line, peek().column);
     
     std::vector<StmtPtr> block;
@@ -68,9 +83,33 @@ StmtPtr Parser::parse_func_decl_stmt() {
     return std::make_unique<FuncDeclStmt>(var_type, var_name, std::move(args), std::move(block));
 }
 
+StmtPtr Parser::parse_func_call_stmt() {
+    std::string func_name = consume(TokenType::ID, "Expected identifier", peek().line, peek().column).value;
+    pos++;
+    std::vector<ExprPtr> func_args;
+    while (!match(TokenType::RPAREN)) {
+        func_args.push_back(parse_expr());
+        if (peek().type != TokenType::RPAREN) {
+            consume(TokenType::COMMA, "Expected ','", peek().line, peek().column);
+        }
+    }
+    consume(TokenType::SEMICOLON, "Expected ';'", peek().line, peek().column);
+    return std::make_unique<FuncCallStmt>(func_name, std::move(func_args));
+}
+
+StmtPtr Parser::parse_return_stmt() {
+    ExprPtr expr = nullptr;
+    if (peek().type != TokenType::SEMICOLON) {
+        expr = parse_expr();
+    }
+    consume(TokenType::SEMICOLON, "Expected ';'", peek().line, peek().column);
+    return std::make_unique<ReturnStmt>(std::move(expr));
+}
+
 Argument Parser::parse_argument() {
-    Type arg_type = consume_type();
     std::string arg_name = consume(TokenType::ID, "Expected identifier", peek().line, peek().column).value;
+    consume(TokenType::COLON, "Expected ':'", peek().line, peek().column);
+    Type arg_type = consume_type();
     ExprPtr arg_expr = nullptr;
     if (match(TokenType::EQ)) {
         arg_expr = parse_expr();
@@ -82,59 +121,185 @@ Argument Parser::parse_argument() {
 }
 
 ExprPtr Parser::parse_expr() {
-    return parse_primary();
-}
-
-ExprPtr Parser::parse_l_or() {
-
+    return parse_l_and();
 }
 
 ExprPtr Parser::parse_l_and() {
+    ExprPtr expr = parse_l_or();
+    
+    while (match(TokenType::L_AND)) {
+        expr = std::make_unique<BinaryExpr>(TokenType::L_AND, std::move(expr), std::move(parse_l_or()));
+    }
 
+    return expr;
+}
+
+ExprPtr Parser::parse_l_or() {
+    ExprPtr expr = parse_equality();
+    
+    while (match(TokenType::L_OR)) {
+        expr = std::make_unique<BinaryExpr>(TokenType::L_OR, std::move(expr), std::move(parse_equality()));
+    }
+
+    return expr;
 }
 
 ExprPtr Parser::parse_equality() {
+    ExprPtr expr = parse_comparation();
+    
+    while (1) {
+        if (match(TokenType::EQ_EQ)) {
+            expr = std::make_unique<BinaryExpr>(TokenType::EQ_EQ, std::move(expr), std::move(parse_comparation()));
+        }
+        else if (match(TokenType::NOT_EQ)) {
+            expr = std::make_unique<BinaryExpr>(TokenType::NOT_EQ, std::move(expr), std::move(parse_comparation()));
+        }
+        else {
+            break;
+        }
+    }
 
+    return expr;
 }
 
 ExprPtr Parser::parse_comparation() {
+    ExprPtr expr = parse_multiplicative();
+    
+    while (1) {
+        if (match(TokenType::GT)) {
+            expr = std::make_unique<BinaryExpr>(TokenType::GT, std::move(expr), std::move(parse_multiplicative()));
+        }
+        else if (match(TokenType::GT_EQ)) {
+            expr = std::make_unique<BinaryExpr>(TokenType::GT_EQ, std::move(expr), std::move(parse_multiplicative()));
+        }
+        else if (match(TokenType::LS)) {
+            expr = std::make_unique<BinaryExpr>(TokenType::LS, std::move(expr), std::move(parse_multiplicative()));
+        }
+        else if (match(TokenType::LS_EQ)) {
+            expr = std::make_unique<BinaryExpr>(TokenType::LS_EQ, std::move(expr), std::move(parse_multiplicative()));
+        }
+        else {
+            break;
+        }
+    }
 
+    return expr;
 }
 
 ExprPtr Parser::parse_multiplicative() {
+    ExprPtr expr = parse_additive();
+    
+    while (1) {
+        if (match(TokenType::MULT)) {
+            expr = std::make_unique<BinaryExpr>(TokenType::MULT, std::move(expr), std::move(parse_additive()));
+        }
+        else if (match(TokenType::DIV)) {
+            expr = std::make_unique<BinaryExpr>(TokenType::DIV, std::move(expr), std::move(parse_additive()));
+        }
+        else if (match(TokenType::MODULO)) {
+            expr = std::make_unique<BinaryExpr>(TokenType::MODULO, std::move(expr), std::move(parse_additive()));
+        }
+        else {
+            break;
+        }
+    }
 
+    return expr;
 }
 
 ExprPtr Parser::parse_additive() {
+    ExprPtr expr = parse_unary();
+    
+    while (1) {
+        if (match(TokenType::MINUS)) {
+            expr = std::make_unique<BinaryExpr>(TokenType::MINUS, std::move(expr), std::move(parse_unary()));
+        }
+        else if (match(TokenType::PLUS)) {
+            expr = std::make_unique<BinaryExpr>(TokenType::PLUS, std::move(expr), std::move(parse_unary()));
+        }
+        else {
+            break;
+        }
+    }
 
+    return expr;
 }
 
 ExprPtr Parser::parse_unary() {
+    while (1) {
+        if (match(TokenType::MINUS)) {
+            return std::make_unique<UnaryExpr>(TokenType::MINUS, std::move(parse_primary()));
+        }
+        else if (match(TokenType::L_NOT)) {
+            return std::make_unique<UnaryExpr>(TokenType::L_NOT, std::move(parse_primary()));
+        }
+        else {
+            break;
+        }
+    }
 
+    return parse_primary();
 }
 
 ExprPtr Parser::parse_primary() {
     Token token = peek();
 
     switch (token.type) {
-        case TokenType::CHAR_LIT:
+        case TokenType::I8_LIT:
             pos++;
-            return std::make_unique<CharLiteral>(std::stoll(token.value));
-        case TokenType::SHORT_LIT:
+            if (std::isdigit(token.value[0])) {
+                return std::make_unique<I8Literal>(std::stoll(token.value));;
+            }
+            return std::make_unique<I8Literal>((std::int8_t)(token.value[0]));
+        case TokenType::I16_LIT:
             pos++;
-            return std::make_unique<ShortLiteral>(std::stoll(token.value));
-        case TokenType::INT_LIT:
+            return std::make_unique<I16Literal>(std::stoll(token.value));
+        case TokenType::I32_LIT:
             pos++;
-            return std::make_unique<IntLiteral>(std::stoll(token.value));
-        case TokenType::LONG_LIT:
+            return std::make_unique<I32Literal>(std::stoll(token.value));
+        case TokenType::I64_LIT:
             pos++;
-            return std::make_unique<LongLiteral>(std::stoll(token.value));
-        case TokenType::FLOAT_LIT:
+            return std::make_unique<I64Literal>(std::stoll(token.value));
+        case TokenType::F32_LIT:
             pos++;
-            return std::make_unique<FloatLiteral>(std::stold(token.value));
-        case TokenType::DOUBLE_LIT:
+            return std::make_unique<F32Literal>(std::stold(token.value));
+        case TokenType::F64_LIT:
             pos++;
-            return std::make_unique<DoubleLiteral>(std::stold(token.value));
+            return std::make_unique<F64Literal>(std::stold(token.value));
+        case TokenType::U8_LIT:
+            pos++;
+            if (std::isdigit(token.value[0])) {
+                return std::make_unique<U8Literal>(std::stoll(token.value));;
+            }
+            return std::make_unique<U8Literal>((std::uint8_t)(token.value[0]));
+        case TokenType::U16_LIT:
+            pos++;
+            return std::make_unique<U16Literal>((std::uint16_t)std::stoull(token.value));
+        case TokenType::U32_LIT:
+            pos++;
+            return std::make_unique<U32Literal>((std::uint32_t)std::stoull(token.value));
+        case TokenType::U64_LIT:
+            pos++;
+            return std::make_unique<U64Literal>((std::uint64_t)std::stoull(token.value));
+        case TokenType::BOOL_LIT:
+            pos++;
+            return std::make_unique<BoolLiteral>(token.value == "true");
+        case TokenType::STRING_LIT:
+            pos++;
+            return std::make_unique<StringLiteral>(token.value);
+        case TokenType::ID:
+            pos++;
+            if (match(TokenType::LPAREN)) {
+                std::vector<ExprPtr> func_args;
+                while (!match(TokenType::RPAREN)) {
+                    func_args.push_back(parse_expr());
+                    if (peek().type != TokenType::RPAREN) {
+                        consume(TokenType::COMMA, "Expected ','", peek().line, peek().column);
+                    }
+                }
+                return std::make_unique<FuncCallExpr>(token.value, std::move(func_args));
+            }
+            return std::make_unique<VarExpr>(token.value);
         default:
             std::cerr << "Unexpected token '" << token.value << "'\n";
             exit(1);
@@ -142,29 +307,47 @@ ExprPtr Parser::parse_primary() {
 }
 
 bool Parser::is_type(TokenType type) const {
-    return type == TokenType::CHAR || type == TokenType::SHORT || type == TokenType::INT
-        || type == TokenType::LONG || type == TokenType::FLOAT || type == TokenType::DOUBLE;
+    return type == TokenType::I8 || type == TokenType::I16 || type == TokenType::I32 || type == TokenType::I64 || type == TokenType::F32 || type == TokenType::F64
+        || type == TokenType::U8 || type == TokenType::U16 || type == TokenType::U32 || type == TokenType::U64 || type == TokenType::BOOL
+        || type == TokenType::NOTHING;
+}
+
+bool Parser::is_unsigned_type(TokenType type) const {
+    return type == TokenType::U8 || type == TokenType::U16 || type == TokenType::U32 || type == TokenType::U64;
 }
 
 TypeValue Parser::token_type_to_type_value(Token token) const {
     if (is_type(token.type)) {
         switch (token.type) {
-            case TokenType::CHAR:
-                return TypeValue::CHAR;
-            case TokenType::SHORT:
-                return TypeValue::SHORT;
-            case TokenType::INT:
-                return TypeValue::INT;
-            case TokenType::LONG:
-                return TypeValue::LONG;
-            case TokenType::FLOAT:
-                return TypeValue::FLOAT;
-            case TokenType::DOUBLE:
-                return TypeValue::DOUBLE;
+            case TokenType::I8:
+                return TypeValue::I8;
+            case TokenType::I16:
+                return TypeValue::I16;
+            case TokenType::I32:
+                return TypeValue::I32;
+            case TokenType::I64:
+                return TypeValue::I64;
+            case TokenType::F32:
+                return TypeValue::F32;
+            case TokenType::F64:
+                return TypeValue::F64;
+            case TokenType::U8:
+                return TypeValue::U8;
+            case TokenType::U16:
+                return TypeValue::U16;
+            case TokenType::U32:
+                return TypeValue::U32;
+            case TokenType::U64:
+                return TypeValue::U64;
+            case TokenType::BOOL:
+                return TypeValue::BOOL;
+            case TokenType::NOTHING:
+                return TypeValue::NOTHING;
+            default: {}
         }
     }
-    else if (token.type == TokenType::STRUCT) {
-        return TypeValue::STRUCT;
+    else if (token.type == TokenType::CLASS) {
+        return TypeValue::CLASS;
     }
     else if (token.type == TokenType::ENUM) {
         return TypeValue::ENUM;
@@ -175,23 +358,7 @@ TypeValue Parser::token_type_to_type_value(Token token) const {
     }
 }
 
-Type Parser::consume_type() {
-    bool is_const = match(TokenType::CONST);
-    bool is_unsigned = false;
-    if (match(TokenType::UNSIGNED)) {
-        is_unsigned = true;
-    }
-    else if (match(TokenType::SIGNED)) {}
-    TypeSpecifier specifier = TypeSpecifier::NONE;
-    if ((peek(1).type != TokenType::ID && peek(1).type != TokenType::MULT) && (peek().type == TokenType::LONG || peek().type == TokenType::SHORT)) {
-        if (peek().type == TokenType::LONG) {
-            specifier = TypeSpecifier::LONG;
-        }
-        else {
-            specifier = TypeSpecifier::SHORT;
-        }
-        pos++;
-    }
+Type Parser::consume_type(bool is_const) {
     Token token = peek();
     if (!is_type(token.type)) {
         std::cerr << "Expected type " << '(' << token.line << ':' << token.column << ')' << '\n';
@@ -199,7 +366,7 @@ Type Parser::consume_type() {
     }
     pos++;
     bool is_pointer = match(TokenType::MULT);
-    return Type(token_type_to_type_value(token), token.value, specifier, is_const, is_unsigned, is_pointer);
+    return Type(token_type_to_type_value(token), token.value, is_const, is_unsigned_type(token.type), is_pointer);
 }
 
 Token Parser::peek(int rpos) const {

@@ -1,0 +1,6 @@
+var var1: i32 = -10;
+var var2: i64;
+const var3: i16 = 12;
+var var4: u8 = 123;
+const var5: u32 = 13;
+const var6: i8*;

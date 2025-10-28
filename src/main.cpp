@@ -31,7 +31,7 @@ std::string token_to_string(Token& token);
 
 int main(int argc, char* argv[]) {
     if (argc != 2) {
-        std::cerr << "Use: cc <source_name>\n";
+        std::cerr << "Use: blinkc <source_name>\n";
         return 1;
     }
 
@@ -176,7 +176,7 @@ int main(int argc, char* argv[]) {
     dest.flush();
     dest.close();
 
-    const char* env_linker = std::getenv("CC_LINKER");
+    const char* env_linker = std::getenv("BLINKC_LINKER");
     std::string linker = env_linker ? std::string(env_linker) : std::string("clang");
     #if defined(_WIN32)
     std::string link_cmd = linker + std::string(" ") + std::string("\"") + object_path + std::string("\"") + " -o " + std::string("\"") + executable_path + std::string("\"") + " -fuse-ld=lld";

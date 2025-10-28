@@ -1,30 +1,28 @@
 #pragma once
+#include "../lexer/token.hpp"
+#include <cmath>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <variant>
 #include <vector>
 
 enum class TypeValue {
-    CHAR, SHORT, INT, LONG, FLOAT, DOUBLE, STRUCT, ENUM
-};
-
-enum class TypeSpecifier {
-    NONE, LONG, SHORT
+    I8, I16, I32, I64, F32, F64, U8, U16, U32, U64, BOOL, STRING, NOTHING, CLASS, ENUM
 };
 
 struct Type {
     TypeValue type;
     std::string name;
-    TypeSpecifier specifier;
     bool is_const;
     bool is_unsigned;
     bool is_pointer;
 
-    Type(TypeValue t, std::string n, TypeSpecifier s = TypeSpecifier::NONE, bool is_c = false, bool is_u = false, bool is_p = false)
-       : type(t), name(n), specifier(s), is_const(is_c), is_unsigned(is_u), is_pointer(is_p) {}
+    Type(TypeValue t, std::string n, bool is_c = false, bool is_u = false, bool is_p = false)
+       : type(t), name(n), is_const(is_c), is_unsigned(is_u), is_pointer(is_p) {}
     
     bool operator ==(Type& other) const {
-        return this->type == other.type && this->name == other.name && this->specifier == other.specifier && this->is_const == other.is_const
+        return this->type == other.type && this->name == other.name && this->is_const == other.is_const
             && this->is_unsigned == other.is_unsigned && this->is_pointer == other.is_pointer;
     }
 
@@ -34,14 +32,21 @@ struct Type {
 };
 
 struct Value {
-    std::variant<char, short, int, long, float, double> value;
+    std::variant<std::int8_t, std::int16_t, std::int32_t, std::int64_t, std::float_t, std::double_t, std::uint8_t, std::uint16_t, std::uint32_t, std::uint64_t,
+                 bool, std::string> value;
 
-    Value(char v)       : value(v) {}
-    Value(short v)      : value(v) {}
-    Value(int v)        : value(v) {}
-    Value(long v)       : value(v) {}
-    Value(float v)      : value(v) {}
-    Value(double v)     : value(v) {}
+    Value(std::int8_t v)        : value(v) {}
+    Value(std::int16_t v)       : value(v) {}
+    Value(std::int32_t v)       : value(v) {}
+    Value(std::int64_t v)       : value(v) {}
+    Value(std::float_t v)       : value(v) {}
+    Value(std::double_t v)      : value(v) {}
+    Value(std::uint8_t v)       : value(v) {}
+    Value(std::uint16_t v)      : value(v) {}
+    Value(std::uint32_t v)      : value(v) {}
+    Value(std::uint64_t v)      : value(v) {}
+    Value(bool v)               : value(v) {}
+    Value(std::string v)        : value(v) {}
 };
 
 class Expr {
@@ -66,40 +71,111 @@ public:
     virtual ~Literal() = default;
 };
 
-class CharLiteral : public Literal {
+class I8Literal : public Literal {
 public:
-    CharLiteral(char v) : Literal(Value(v), Type(TypeValue::CHAR, "char")) {}
-    ~CharLiteral() override = default;
+    I8Literal(std::int8_t v) : Literal(Value(v), Type(TypeValue::I8, "i8")) {}
+    ~I8Literal() override = default;
 };
 
-class ShortLiteral : public Literal {
+class I16Literal : public Literal {
 public:
-    ShortLiteral(short v) : Literal(Value(v), Type(TypeValue::SHORT, "short")) {}
-    ~ShortLiteral() override = default;
+    I16Literal(std::int16_t v) : Literal(Value(v), Type(TypeValue::I16, "i16")) {}
+    ~I16Literal() override = default;
 };
 
-class IntLiteral : public Literal {
+class I32Literal : public Literal {
 public:
-    IntLiteral(int v) : Literal(Value(v), Type(TypeValue::INT, "int")) {}
-    ~IntLiteral() override = default;
+    I32Literal(std::int32_t v) : Literal(Value(v), Type(TypeValue::I32, "i32")) {}
+    ~I32Literal() override = default;
 };
 
-class LongLiteral : public Literal {
+class I64Literal : public Literal {
 public:
-    LongLiteral(long v) : Literal(Value(v), Type(TypeValue::LONG, "long")) {}
-    ~LongLiteral() override = default;
+    I64Literal(std::int64_t v) : Literal(Value(v), Type(TypeValue::I64, "i64")) {}
+    ~I64Literal() override = default;
 };
 
-class FloatLiteral : public Literal {
+class F32Literal : public Literal {
 public:
-    FloatLiteral(float v) : Literal(Value(v), Type(TypeValue::FLOAT, "float")) {}
-    ~FloatLiteral() override = default;
+    F32Literal(std::float_t v) : Literal(Value(v), Type(TypeValue::F32, "f32")) {}
+    ~F32Literal() override = default;
 };
 
-class DoubleLiteral : public Literal {
+class F64Literal : public Literal {
 public:
-    DoubleLiteral(double v) : Literal(Value(v), Type(TypeValue::DOUBLE, "double")) {}
-    ~DoubleLiteral() override = default;
+    F64Literal(std::double_t v) : Literal(Value(v), Type(TypeValue::F64, "f64")) {}
+    ~F64Literal() override = default;
+};
+
+class U8Literal : public Literal {
+public:
+    U8Literal(std::uint8_t v) : Literal(Value(v), Type(TypeValue::U8, "u8")) {}
+    ~U8Literal() override = default;
+};
+
+class U16Literal : public Literal {
+public:
+    U16Literal(std::uint16_t v) : Literal(Value(v), Type(TypeValue::U16, "u16")) {}
+    ~U16Literal() override = default;
+};
+
+class U32Literal : public Literal {
+public:
+    U32Literal(std::uint32_t v) : Literal(Value(v), Type(TypeValue::U32, "u32")) {}
+    ~U32Literal() override = default;
+};
+
+class U64Literal : public Literal {
+public:
+    U64Literal(std::uint64_t v) : Literal(Value(v), Type(TypeValue::U64, "u64")) {}
+    ~U64Literal() override = default;
+};
+
+class BoolLiteral : public Literal {
+public:
+    BoolLiteral(bool v) : Literal(Value(v), Type(TypeValue::BOOL, "bool")) {}
+    ~BoolLiteral() override = default;
+};
+
+class StringLiteral : public Literal {
+public:
+    StringLiteral(std::string v) : Literal(Value(v), Type(TypeValue::STRING, "string")) {}
+    ~StringLiteral() override = default;
+};
+
+class BinaryExpr : public Expr {
+public:
+    TokenType op_type;
+    ExprPtr left;
+    ExprPtr right;
+
+    BinaryExpr(TokenType o, ExprPtr l, ExprPtr r) : op_type(o), left(std::move(l)), right(std::move(r)) {}
+    ~BinaryExpr() override = default;
+};
+
+class UnaryExpr : public Expr {
+public:
+    TokenType op_type;
+    ExprPtr expr;
+
+    UnaryExpr(TokenType o, ExprPtr e) : op_type(o), expr(std::move(e)) {}
+    ~UnaryExpr() override = default;
+};
+
+class VarExpr : public Expr {
+public:
+    std::string name;
+
+    VarExpr(std::string n) : name(n) {}
+    ~VarExpr() override = default;
+};
+
+class FuncCallExpr : public Expr {
+public:
+    std::string name;
+    std::vector<ExprPtr> args;
+
+    FuncCallExpr(std::string n, std::vector<ExprPtr> a) : name(n), args(std::move(a)) {}
 };
 
 class VarDeclStmt : public Stmt {
@@ -128,4 +204,22 @@ public:
     std::vector<StmtPtr> block;
 
     FuncDeclStmt(Type t, std::string n, std::vector<Argument> a, std::vector<StmtPtr> b) : type(t), name(n), args(std::move(a)), block(std::move(b)) {}
+    ~FuncDeclStmt() override = default;
+};
+
+class FuncCallStmt : public Stmt {
+public:
+    std::string name;
+    std::vector<ExprPtr> args;
+
+    FuncCallStmt(std::string n, std::vector<ExprPtr> a) : name(n), args(std::move(a)) {}
+    ~FuncCallStmt() override = default;
+};
+
+class ReturnStmt : public Stmt {
+public:
+    ExprPtr expr;
+
+    ReturnStmt(ExprPtr e) : expr(std::move(e)) {}
+    ~ReturnStmt() override = default;
 };
