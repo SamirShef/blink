@@ -25,6 +25,7 @@ private:
     void skip_singleline_comment();
     void skip_multiline_comment();
 
+    const char advance_escape_sequence();
     const char peek(int rpos = 0) const;
     const char advance();
 };

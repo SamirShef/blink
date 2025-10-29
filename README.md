@@ -15,6 +15,18 @@
 11) **bool**
 12) **pointer for all types**
 
+## Escape-sequences:
+1) `\n` (*aka move to new line*)
+2) `\t` (*aka horizontal tab*)
+3) `\\` (*aka backslash*)
+4) `\"` (*aka double quote*)
+5) `\'` (*aka single quote*)
+6) `\a` (*aka alert*)
+7) `\b` (*aka backspace*)
+8) `\r` (*aka carriage return*)
+9) `\f` (*aka form feed*)
+10) `\v` (*aka vertical tab*)
+
 ## Variable declaration
 ```cpp
 var test: i32 = 10 + 20;        // muttable
@@ -46,13 +58,13 @@ func main() : i32 {
     var cond: i32 = 0;
 
     if (2 == 1) {
-        printf("Yes!");
+        printf("Yes!\n");
     }
     else if (cond) {
-        printf("Not first!");
+        printf("Not first!\n");
     }
     else {
-        printf("Not all!");
+        printf("Not all!\n");
     }
     return 0;
 }
@@ -68,12 +80,12 @@ func main() : i32 {
         else if (i == 3) {
             continue;
         }
-        printf("%d", i);
+        printf("%d\n", i);
     }
 
     var a: i32 = 20;
     for (a = 1; a < 20; a *= 2) {
-        printf("%d", a);
+        printf("%d\n", a);
     }
     return 0;
 }

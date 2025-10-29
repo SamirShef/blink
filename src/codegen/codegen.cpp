@@ -186,7 +186,8 @@ void CodeGenerator::generate_func_decl_stmt(const FuncDeclStmt& fds) {
     size_t index = 0;
     for (llvm::Argument& arg : func->args()) {
         arg.setName(fds.args[index].name);
-        variables.top().emplace(fds.args[index].name, &arg);
+        llvm::AllocaInst* arg_alloca = builder.CreateAlloca(arg.getType(), nullptr, fds.args[index].name);
+        variables.top().emplace(fds.args[index].name, arg_alloca);
     }
     for (const StmtPtr& stmt : fds.block) {
         generate_stmt(*stmt);
@@ -287,7 +288,6 @@ void CodeGenerator::generate_for_cycle_stmt(const ForCycleStmt& fcs) {
     llvm::BasicBlock* body_bb = llvm::BasicBlock::Create(context, "for.body", function);
     llvm::BasicBlock* exit_bb = llvm::BasicBlock::Create(context, "for.exit", function);
 
-    variables.push({});
     builder.CreateBr(indexator_bb);
     builder.SetInsertPoint(indexator_bb);
     generate_stmt(*fcs.indexator);
@@ -300,6 +300,7 @@ void CodeGenerator::generate_for_cycle_stmt(const ForCycleStmt& fcs) {
     builder.SetInsertPoint(body_bb);
     loop_blocks.emplace(exit_bb, iteration_bb);
     blocks_deep++;
+    variables.push({});
     for (const StmtPtr& stmt : fcs.block) {
         generate_stmt(*stmt);
     }
@@ -350,7 +351,7 @@ llvm::Value* CodeGenerator::generate_expr(const Expr& expr) {
         return generate_func_call_expr(*fce);
     }
     else {
-        std::cerr << "Unsupported expression\n";
+        std::cerr << "codegen: Unsupported expression\n";
         exit(1);
     }
 }
@@ -385,7 +386,7 @@ llvm::Value* CodeGenerator::generate_literal(const Literal& lit) {
                 return builder.CreateGlobalString(std::get<std::string>(value), "string_lit");
             }
         default:
-            std::cerr << "Unsupported literal\n";
+            std::cerr << "codegen: Unsupported literal\n";
             exit(1);
     }
 }
@@ -520,13 +521,13 @@ llvm::Value* CodeGenerator::generate_var_expr(const VarExpr& ve) {
         vars.pop();
     }
 
-    std::cerr << "Variable '" << ve.name << "' does not exist\n";
+    std::cerr << "codegen: Variable '" << ve.name << "' does not exist\n";
     exit(1);
 }
 
 llvm::Value* CodeGenerator::generate_func_call_expr(const FuncCallExpr& fce) {
     if (functions.empty() || functions.find(fce.name) == functions.end()) {
-        std::cerr << "Function '" << fce.name << "' does not exist\n";
+        std::cerr << "codegen: Function '" << fce.name << "' does not exist\n";
         exit(1);
     }
     
@@ -572,7 +573,7 @@ llvm::Value* CodeGenerator::implicitly_cast(llvm::Value* value, llvm::Type* expe
         return builder.CreateSIToFP(value, expected_type);
     }
 
-    std::cerr << "Unknown type to implicitly cast (";
+    std::cerr << "codegen: Unknown type to implicitly cast (";
     value_type->print(llvm::outs());
     std::cerr << " to ";
     expected_type->print(llvm::outs());

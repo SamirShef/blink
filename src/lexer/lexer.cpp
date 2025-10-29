@@ -83,7 +83,7 @@ Token Lexer::tokenize_number() {
     while (pos < source_len && (std::isdigit(peek()) || peek() == '.')) {
         if (peek() == '.') {
             if (has_dot) {
-                std::cerr << "Invalid number literal (twice dot)\n";
+                std::cerr << "lexer: Invalid number literal (twice dot)\n";
                 exit(1);
             }
             has_dot = true;
@@ -103,7 +103,13 @@ Token Lexer::tokenize_string() {
 
     advance();
     while (pos < source_len && peek() != '"') {
-        val += advance();
+        if (peek() == '\\') {
+            advance();
+            val += advance_escape_sequence();
+        }
+        else {
+            val += advance();
+        }
     }
     advance();
 
@@ -117,7 +123,13 @@ Token Lexer::tokenize_char() {
 
     advance();
     while (pos < source_len && peek() != '\'') {
-        val += advance();
+        if (peek() == '\\') {
+            advance();
+            val += advance_escape_sequence();
+        }
+        else {
+            val += advance();
+        }
     }
     advance();
 
@@ -272,7 +284,7 @@ Token Lexer::tokenize_op() {
             advance();
             return Token(TokenType::B_XOR, "^", tmp_l, tmp_c);
         default:
-            std::cerr << "Unsupported operator: '" << c << "' (" << line << ':' << column << ")\n";
+            std::cerr << "lexer: Unsupported operator: '" << c << "' (" << line << ':' << column << ")\n";
             exit(1);
     }
 }
@@ -293,9 +305,38 @@ void Lexer::skip_multiline_comment() {
     advance();
 }
 
+const char Lexer::advance_escape_sequence() {
+    const char c = advance();
+    switch (c) {
+        case 'n':
+            return '\n';
+        case 't':
+            return '\t';
+        case '\\':
+            return '\\';
+        case '\"':
+            return '\"';
+        case '\'':
+            return '\'';
+        case 'a':
+            return '\a';
+        case 'b':
+            return '\b';
+        case 'r':
+            return '\r';
+        case 'f':
+            return '\f';
+        case 'v':
+            return '\v';
+        default:
+            std::cerr << "lexer: Unsupported escape-sequence '\\" << c << "' (" << line << ':' << column - 2 << ")\n";
+            exit(1);
+    }
+}
+
 const char Lexer::peek(int rpos) const {
     if (pos + rpos >= source_len) {
-        std::cerr << "Index out of range: (" << pos + rpos << "/" << source_len << ")\n";
+        std::cerr << "lexer: Index out of range: (" << pos + rpos << "/" << source_len << ")\n";
         exit(1);
     }
     return source[pos + rpos];

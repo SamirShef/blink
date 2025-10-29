@@ -1,7 +1,6 @@
 #include "../../include/parser/parser.hpp"
 #include "../../include/lexer/token.hpp"
 #include "../../include/parser/ast.hpp"
-#include <cctype>
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
@@ -50,7 +49,7 @@ StmtPtr Parser::parse_stmt() {
         return parse_return_stmt();
     }
     else {
-        std::cerr << "Unsupported token '" << peek().value << "' (" << peek().line << ':' << peek().column << ')' << '\n';
+        std::cerr << "parser: Unsupported token '" << peek().value << "' (" << peek().line << ':' << peek().column << ')' << '\n';
         exit(1);
     }
 }
@@ -395,7 +394,7 @@ ExprPtr Parser::parse_primary() {
             }
             return std::make_unique<VarExpr>(token.value);
         default:
-            std::cerr << "Unexpected token '" << token.value << "' (" << token.line << ':' << token.column << ')' << '\n';
+            std::cerr << "parser: Unexpected token '" << token.value << "' (" << token.line << ':' << token.column << ')' << '\n';
             exit(1);
     }
 }
@@ -419,7 +418,7 @@ ExprPtr Parser::create_compound_assignment_operator(std::string id) {
         case TokenType::MODULO_EQ:
             return std::make_unique<BinaryExpr>(TokenType::MODULO, std::make_unique<VarExpr>(id), parse_expr());
         default: {
-            std::cerr << "Unsupported compound assignment operator (" << token.line << ':' << token.column << ')' << '\n';
+            std::cerr << "parser: Unsupported compound assignment operator (" << token.line << ':' << token.column << ')' << '\n';
             exit(1);
         }
     }
@@ -472,7 +471,7 @@ TypeValue Parser::token_type_to_type_value(Token token) const {
         return TypeValue::ENUM;
     }
     else {
-        std::cerr << "Expected type (" << token.line << ':' << token.column << ')' << '\n';
+        std::cerr << "parser: Expected type (" << token.line << ':' << token.column << ')' << '\n';
         exit(1);
     }
 }
@@ -480,7 +479,7 @@ TypeValue Parser::token_type_to_type_value(Token token) const {
 Type Parser::consume_type(bool is_const) {
     Token token = peek();
     if (!is_type(token.type)) {
-        std::cerr << "Expected type (" << token.line << ':' << token.column << ')' << '\n';
+        std::cerr << "parser: Expected type (" << token.line << ':' << token.column << ')' << '\n';
         exit(1);
     }
     pos++;
@@ -490,7 +489,7 @@ Type Parser::consume_type(bool is_const) {
 
 Token Parser::peek(int rpos) const {
     if (pos + rpos >= tokens_len) {
-        std::cerr << "Index out of range: (" << pos + rpos << "/" << tokens_len << ")\n";
+        std::cerr << "parser: Index out of range: (" << pos + rpos << "/" << tokens_len << ")\n";
         exit(1);
     }
     return tokens[pos + rpos];
@@ -502,7 +501,7 @@ Token Parser::consume(TokenType type, std::string err_msg, int line, int column)
         pos++;
         return token;
     }
-    std::cerr << err_msg << " (" << line << ':' << column << ')' << '\n';
+    std::cerr << "parser: " << err_msg << " (" << line << ':' << column << ')' << '\n';
     exit(1);
 }
 

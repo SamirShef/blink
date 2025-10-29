@@ -3,8 +3,8 @@ func main() : i32 {
         if (i == 5) {
             break;
         }
-        printf("%d", i);
+        printf("%d\n", i);
     }
-    printf("%d", i);
+    printf("%d\n", i);
     return 0;
 }
