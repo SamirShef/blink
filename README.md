@@ -58,6 +58,27 @@ func main() : i32 {
 }
 ```
 
+## For cycle
+```cpp
+func main() : i32 {
+    for (i: i32 = 0; i < 10; i += 1) {
+        if (i == 5) {
+            break;
+        }
+        else if (i == 3) {
+            continue;
+        }
+        printf("%d", i);
+    }
+
+    var a: i32 = 20;
+    for (a = 1; a < 20; a *= 2) {
+        printf("%d", a);
+    }
+    return 0;
+}
+```
+
 ## Download
 ### Install LLVM
 Arch/Manjaro:
@@ -108,4 +129,4 @@ blinkc <path/to/src>
 
 where `<path/to/src>` replace to real path.
 
-For to see more examples, see examples/
+For to see more examples, see `examples/`

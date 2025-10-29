@@ -130,6 +130,15 @@ void CodeGenerator::generate_stmt(const Stmt& stmt) {
     else if (auto is = dynamic_cast<const IfStmt*>(&stmt)) {
         generate_if_stmt(*is);
     }
+    else if (auto fcs = dynamic_cast<const ForCycleStmt*>(&stmt)) {
+        generate_for_cycle_stmt(*fcs);
+    }
+    else if (dynamic_cast<const BreakStmt*>(&stmt)) {
+        generate_break_stmt();
+    }
+    else if (dynamic_cast<const ContinueStmt*>(&stmt)) {
+        generate_continue_stmt();
+    }
     else if (auto rs = dynamic_cast<const ReturnStmt*>(&stmt)) {
         generate_return_stmt(*rs);
     }
@@ -267,6 +276,51 @@ void CodeGenerator::generate_if_stmt(const IfStmt& is) {
         builder.CreateBr(merge_bb);
     }
     builder.SetInsertPoint(merge_bb);
+}
+
+void CodeGenerator::generate_for_cycle_stmt(const ForCycleStmt& fcs) {
+    llvm::Function* function = builder.GetInsertBlock()->getParent();
+
+    llvm::BasicBlock* indexator_bb = llvm::BasicBlock::Create(context, "for.indexator", function);
+    llvm::BasicBlock* condition_bb = llvm::BasicBlock::Create(context, "for.condition", function);
+    llvm::BasicBlock* iteration_bb = llvm::BasicBlock::Create(context, "for.iteration", function);
+    llvm::BasicBlock* body_bb = llvm::BasicBlock::Create(context, "for.body", function);
+    llvm::BasicBlock* exit_bb = llvm::BasicBlock::Create(context, "for.exit", function);
+
+    variables.push({});
+    builder.CreateBr(indexator_bb);
+    builder.SetInsertPoint(indexator_bb);
+    generate_stmt(*fcs.indexator);
+
+    builder.CreateBr(condition_bb);
+    builder.SetInsertPoint(condition_bb);
+    llvm::Value* condition_value = generate_expr(*fcs.condition);
+
+    builder.CreateCondBr(condition_value, body_bb, exit_bb);
+    builder.SetInsertPoint(body_bb);
+    loop_blocks.emplace(exit_bb, iteration_bb);
+    blocks_deep++;
+    for (const StmtPtr& stmt : fcs.block) {
+        generate_stmt(*stmt);
+    }
+    variables.pop();
+    blocks_deep--;
+    loop_blocks.pop();
+
+    builder.CreateBr(iteration_bb);
+    builder.SetInsertPoint(iteration_bb);
+    generate_stmt(*fcs.iteration);
+
+    builder.CreateBr(condition_bb);
+    builder.SetInsertPoint(exit_bb);
+}
+
+void CodeGenerator::generate_break_stmt() {
+    builder.CreateBr(loop_blocks.top().first);
+}
+
+void CodeGenerator::generate_continue_stmt() {
+    builder.CreateBr(loop_blocks.top().second);
 }
 
 void CodeGenerator::generate_return_stmt(const ReturnStmt& rs) {

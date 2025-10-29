@@ -37,6 +37,15 @@ StmtPtr Parser::parse_stmt() {
     else if (match(TokenType::IF)) {
         return parse_if_stmt();
     }
+    else if (match(TokenType::FOR)) {
+        return parse_for_cycle_stmt();
+    }
+    else if (match(TokenType::BREAK)) {
+        return parse_break_stmt();
+    }
+    else if (match(TokenType::CONTINUE)) {
+        return parse_continue_stmt();
+    }
     else if (match(TokenType::RETURN)) {
         return parse_return_stmt();
     }
@@ -103,7 +112,7 @@ StmtPtr Parser::parse_func_call_stmt() {
     return std::make_unique<FuncCallStmt>(func_name, std::move(func_args));
 }
 
-StmtPtr Parser::parse_var_assignment_stmt() {
+StmtPtr Parser::parse_var_assignment_stmt(bool from_for_cycle) {
     std::string var_name = consume(TokenType::ID, "Expected identifier", peek().line, peek().column).value;
 
     Token op = peek();
@@ -115,7 +124,9 @@ StmtPtr Parser::parse_var_assignment_stmt() {
         consume(TokenType::EQ, "Expected '='", op.line, op.column);
         expr = parse_expr();
     }
-    consume(TokenType::SEMICOLON, "Expected ';'", peek().line, peek().column);
+    if (!from_for_cycle) {
+        consume(TokenType::SEMICOLON, "Expected ';'", peek().line, peek().column);
+    }
     return std::make_unique<VarAsgnStmt>(var_name, std::move(expr));
 }
 
@@ -146,6 +157,44 @@ StmtPtr Parser::parse_if_stmt() {
     }
 
     return std::make_unique<IfStmt>(std::move(condition), std::move(true_block), std::move(false_block));
+}
+
+StmtPtr Parser::parse_for_cycle_stmt() {
+    consume(TokenType::LPAREN, "Expected '('", peek().line, peek().column);
+    StmtPtr indexator = nullptr;
+    if (peek(1).type == TokenType::COLON) {
+        indexator = parse_var_decl_stmt();
+    }
+    else {
+        indexator = parse_var_assignment_stmt();
+    }
+    // `;` already missed before
+    ExprPtr condition = parse_expr();
+    consume(TokenType::SEMICOLON, "Expected ';'", peek().line, peek().column);
+    StmtPtr iteration = parse_var_assignment_stmt(true);
+    consume(TokenType::RPAREN, "Expected ')'", peek().line, peek().column);
+
+    std::vector<StmtPtr> block;
+    if (!match(TokenType::LBRACE)) {
+        block.push_back(parse_stmt());
+    }
+    else {
+        while (!match(TokenType::RBRACE)) {
+            block.push_back(parse_stmt());
+        }
+    }
+
+    return std::make_unique<ForCycleStmt>(std::move(indexator), std::move(condition), std::move(iteration), std::move(block));
+}
+
+StmtPtr Parser::parse_break_stmt() {
+    consume(TokenType::SEMICOLON, "Expected ';'", peek().line, peek().column);
+    return std::make_unique<BreakStmt>();
+}
+
+StmtPtr Parser::parse_continue_stmt() {
+    consume(TokenType::SEMICOLON, "Expected ';'", peek().line, peek().column);
+    return std::make_unique<ContinueStmt>();
 }
 
 StmtPtr Parser::parse_return_stmt() {

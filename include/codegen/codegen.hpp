@@ -1,4 +1,5 @@
 #pragma once
+#include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
@@ -10,6 +11,7 @@
 #include <map>
 #include <stack>
 #include <string>
+#include <utility>
 #include <vector>
 
 class CodeGenerator {
@@ -21,6 +23,7 @@ private:
     unsigned blocks_deep;
     std::stack<std::map<std::string, llvm::Value*>> variables;
     std::map<std::string, llvm::Function*> functions;
+    std::stack<std::pair<llvm::BasicBlock*, llvm::BasicBlock*>> loop_blocks;    // first for `break`, second for `continue`
 
 public:
     CodeGenerator(std::string n, std::vector<StmtPtr> s) : context(), builder(context), module(std::make_unique<llvm::Module>(n, context)),
@@ -41,6 +44,9 @@ private:
     void generate_func_call_stmt(const FuncCallStmt& fcs);
     void generate_var_asgn_stmt(const VarAsgnStmt& vas);
     void generate_if_stmt(const IfStmt& is);
+    void generate_for_cycle_stmt(const ForCycleStmt& fcs);
+    void generate_break_stmt();
+    void generate_continue_stmt();
     void generate_return_stmt(const ReturnStmt& rs);
 
     llvm::Value* generate_expr(const Expr& expr);

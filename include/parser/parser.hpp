@@ -19,8 +19,11 @@ private:
     StmtPtr parse_var_decl_stmt();
     StmtPtr parse_func_decl_stmt();
     StmtPtr parse_func_call_stmt();
-    StmtPtr parse_var_assignment_stmt();
+    StmtPtr parse_var_assignment_stmt(bool from_for_cycle = false);
     StmtPtr parse_if_stmt();
+    StmtPtr parse_for_cycle_stmt();
+    StmtPtr parse_break_stmt();
+    StmtPtr parse_continue_stmt();
     StmtPtr parse_return_stmt();
 
     Argument parse_argument();

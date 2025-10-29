@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -233,6 +234,30 @@ public:
 
     IfStmt(ExprPtr c, std::vector<StmtPtr> t, std::vector<StmtPtr> f) : condition(std::move(c)), true_block(std::move(t)), false_block(std::move(f)) {}
     ~IfStmt() override = default;
+};
+
+class ForCycleStmt : public Stmt {
+public:
+    StmtPtr indexator;
+    ExprPtr condition;
+    StmtPtr iteration;
+    std::vector<StmtPtr> block;
+
+    ForCycleStmt(StmtPtr ir, ExprPtr c, StmtPtr it, std::vector<StmtPtr> b) : indexator(std::move(ir)), condition(std::move(c)), iteration(std::move(it)),
+                                                                              block(std::move(b)) {}
+    ~ForCycleStmt() override = default;
+};
+
+class BreakStmt : public Stmt {
+public:
+    BreakStmt() = default;
+    ~BreakStmt() override = default;
+};
+
+class ContinueStmt : public Stmt {
+public:
+    ContinueStmt() = default;
+    ~ContinueStmt() override = default;
 };
 
 class ReturnStmt : public Stmt {
