@@ -133,6 +133,12 @@ void CodeGenerator::generate_stmt(const Stmt& stmt) {
     else if (auto fcs = dynamic_cast<const ForCycleStmt*>(&stmt)) {
         generate_for_cycle_stmt(*fcs);
     }
+    else if (auto wcs = dynamic_cast<const WhileCycleStmt*>(&stmt)) {
+        generate_while_cycle_stmt(*wcs);
+    }
+    else if (auto dwcs = dynamic_cast<const DoWhileCycleStmt*>(&stmt)) {
+        generate_do_while_cycle_stmt(*dwcs);
+    }
     else if (dynamic_cast<const BreakStmt*>(&stmt)) {
         generate_break_stmt();
     }
@@ -313,6 +319,60 @@ void CodeGenerator::generate_for_cycle_stmt(const ForCycleStmt& fcs) {
     generate_stmt(*fcs.iteration);
 
     builder.CreateBr(condition_bb);
+    builder.SetInsertPoint(exit_bb);
+}
+
+void CodeGenerator::generate_while_cycle_stmt(const WhileCycleStmt& wcs) {
+    llvm::Function* function = builder.GetInsertBlock()->getParent();
+
+    llvm::BasicBlock* condition_bb = llvm::BasicBlock::Create(context, "while.condition", function);
+    llvm::BasicBlock* body_bb = llvm::BasicBlock::Create(context, "while.body", function);
+    llvm::BasicBlock* exit_bb = llvm::BasicBlock::Create(context, "while.exit", function);
+
+    builder.CreateBr(condition_bb);
+    builder.SetInsertPoint(condition_bb);
+    llvm::Value* condition_value = generate_expr(*wcs.condition);
+
+    builder.CreateCondBr(condition_value, body_bb, exit_bb);
+    builder.SetInsertPoint(body_bb);
+    loop_blocks.emplace(exit_bb, condition_bb);
+    blocks_deep++;
+    variables.push({});
+    for (const StmtPtr& stmt : wcs.block) {
+        generate_stmt(*stmt);
+    }
+    variables.pop();
+    blocks_deep--;
+    loop_blocks.pop();
+
+    builder.CreateBr(condition_bb);
+    builder.SetInsertPoint(exit_bb);
+}
+
+void CodeGenerator::generate_do_while_cycle_stmt(const DoWhileCycleStmt& dwcs) {
+    llvm::Function* function = builder.GetInsertBlock()->getParent();
+
+    llvm::BasicBlock* condition_bb = llvm::BasicBlock::Create(context, "dowhile.condition", function);
+    llvm::BasicBlock* body_bb = llvm::BasicBlock::Create(context, "dowhile.body", function);
+    llvm::BasicBlock* exit_bb = llvm::BasicBlock::Create(context, "dowhile.exit", function);
+
+    builder.CreateBr(body_bb);
+    builder.SetInsertPoint(body_bb);
+    loop_blocks.emplace(exit_bb, condition_bb);
+    blocks_deep++;
+    variables.push({});
+    for (const StmtPtr& stmt : dwcs.block) {
+        generate_stmt(*stmt);
+    }
+    variables.pop();
+    blocks_deep--;
+    loop_blocks.pop();
+
+    builder.CreateBr(condition_bb);
+    builder.SetInsertPoint(condition_bb);
+    llvm::Value* condition_value = generate_expr(*dwcs.condition);
+    builder.CreateCondBr(condition_value, body_bb, exit_bb);
+
     builder.SetInsertPoint(exit_bb);
 }
 

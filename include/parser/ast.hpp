@@ -248,6 +248,24 @@ public:
     ~ForCycleStmt() override = default;
 };
 
+class WhileCycleStmt : public Stmt {
+public:
+    ExprPtr condition;
+    std::vector<StmtPtr> block;
+
+    WhileCycleStmt(ExprPtr c, std::vector<StmtPtr> b) : condition(std::move(c)), block(std::move(b)) {}
+    ~WhileCycleStmt() override = default;
+};
+
+class DoWhileCycleStmt : public Stmt {
+public:
+    ExprPtr condition;
+    std::vector<StmtPtr> block;
+
+    DoWhileCycleStmt(ExprPtr c, std::vector<StmtPtr> b) : condition(std::move(c)), block(std::move(b)) {}
+    ~DoWhileCycleStmt() override = default;
+};
+
 class BreakStmt : public Stmt {
 public:
     BreakStmt() = default;

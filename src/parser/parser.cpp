@@ -39,6 +39,12 @@ StmtPtr Parser::parse_stmt() {
     else if (match(TokenType::FOR)) {
         return parse_for_cycle_stmt();
     }
+    else if (match(TokenType::WHILE)) {
+        return parse_while_cycle_stmt();
+    }
+    else if (match(TokenType::DO)) {
+        return parse_do_while_cycle_stmt();
+    }
     else if (match(TokenType::BREAK)) {
         return parse_break_stmt();
     }
@@ -184,6 +190,44 @@ StmtPtr Parser::parse_for_cycle_stmt() {
     }
 
     return std::make_unique<ForCycleStmt>(std::move(indexator), std::move(condition), std::move(iteration), std::move(block));
+}
+
+StmtPtr Parser::parse_while_cycle_stmt() {
+    consume(TokenType::LPAREN, "Expected '('", peek().line, peek().column);
+    ExprPtr condition = parse_expr();
+    consume(TokenType::RPAREN, "Expected ')'", peek().line, peek().column);
+
+    std::vector<StmtPtr> block;
+    if (!match(TokenType::LBRACE)) {
+        block.push_back(parse_stmt());
+    }
+    else {
+        while (!match(TokenType::RBRACE)) {
+            block.push_back(parse_stmt());
+        }
+    }
+
+    return std::make_unique<WhileCycleStmt>(std::move(condition), std::move(block));
+}
+
+StmtPtr Parser::parse_do_while_cycle_stmt() {
+    std::vector<StmtPtr> block;
+    if (!match(TokenType::LBRACE)) {
+        block.push_back(parse_stmt());
+    }
+    else {
+        while (!match(TokenType::RBRACE)) {
+            block.push_back(parse_stmt());
+        }
+    }
+    
+    consume(TokenType::WHILE, "Expected 'while'", peek().line, peek().column);
+    consume(TokenType::LPAREN, "Expected '('", peek().line, peek().column);
+    ExprPtr condition = parse_expr();
+    consume(TokenType::RPAREN, "Expected ')'", peek().line, peek().column);
+    consume(TokenType::SEMICOLON, "Expected ';'", peek().line, peek().column);
+
+    return std::make_unique<DoWhileCycleStmt>(std::move(condition), std::move(block));
 }
 
 StmtPtr Parser::parse_break_stmt() {

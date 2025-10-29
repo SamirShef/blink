@@ -22,6 +22,8 @@ private:
     StmtPtr parse_var_assignment_stmt(bool from_for_cycle = false);
     StmtPtr parse_if_stmt();
     StmtPtr parse_for_cycle_stmt();
+    StmtPtr parse_while_cycle_stmt();
+    StmtPtr parse_do_while_cycle_stmt();
     StmtPtr parse_break_stmt();
     StmtPtr parse_continue_stmt();
     StmtPtr parse_return_stmt();

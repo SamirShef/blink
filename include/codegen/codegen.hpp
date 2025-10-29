@@ -45,6 +45,8 @@ private:
     void generate_var_asgn_stmt(const VarAsgnStmt& vas);
     void generate_if_stmt(const IfStmt& is);
     void generate_for_cycle_stmt(const ForCycleStmt& fcs);
+    void generate_while_cycle_stmt(const WhileCycleStmt& wcs);
+    void generate_do_while_cycle_stmt(const DoWhileCycleStmt& wcs);
     void generate_break_stmt();
     void generate_continue_stmt();
     void generate_return_stmt(const ReturnStmt& rs);

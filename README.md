@@ -91,6 +91,25 @@ func main() : i32 {
 }
 ```
 
+## While cycles
+```cpp
+func main() : i32 {
+    var i: i32 = 0;
+    printf("While\n");
+    while (i < 10) {
+        printf("%d\n", i);
+        i += 1;
+    }
+
+    printf("Do-while\n");
+    do {
+        printf("%d\n", i);
+        i += 1;
+    } while (i < 10);
+    return 0;
+}
+```
+
 ## Download
 ### Install LLVM
 Arch/Manjaro:
