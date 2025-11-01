@@ -1,5 +1,6 @@
 # Blink programming language
 **Blink** is a small programming language, looks like **C**, **C++** and **Rust**
+For download [click here](#download)
 
 ## Types:
 1) **i8** (*aka signed char*)
