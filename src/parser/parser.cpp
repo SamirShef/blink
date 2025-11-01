@@ -30,7 +30,7 @@ StmtPtr Parser::parse_stmt() {
             return parse_func_call_stmt();
         }
         else {
-            return parse_var_assignment_stmt();
+            return parse_var_asgn_stmt();
         }
     }
     else if (match(TokenType::IF)) {
@@ -81,7 +81,7 @@ StmtPtr Parser::parse_var_decl_stmt() {
 }
 
 StmtPtr Parser::parse_func_decl_stmt() {
-    std::string var_name = consume(TokenType::ID, "Expected identifier", peek().line, peek().column).value;
+    std::string func_name = consume(TokenType::ID, "Expected identifier", peek().line, peek().column).value;
     consume(TokenType::LPAREN, "Expected '('", peek().line, peek().column);
     std::vector<Argument> args;
     while (!match(TokenType::RPAREN)) {
@@ -92,7 +92,7 @@ StmtPtr Parser::parse_func_decl_stmt() {
     if (match(TokenType::CONST)) {
         is_const = true;
     }
-    Type var_type = consume_type(is_const);
+    Type func_type = consume_type(is_const);
     consume(TokenType::LBRACE, "Expected '{'", peek().line, peek().column);
     
     std::vector<StmtPtr> block;
@@ -100,7 +100,7 @@ StmtPtr Parser::parse_func_decl_stmt() {
         block.push_back(parse_stmt());
     }
     
-    return std::make_unique<FuncDeclStmt>(var_type, var_name, std::move(args), std::move(block));
+    return std::make_unique<FuncDeclStmt>(func_type, func_name, std::move(args), std::move(block));
 }
 
 StmtPtr Parser::parse_func_call_stmt() {
@@ -117,7 +117,7 @@ StmtPtr Parser::parse_func_call_stmt() {
     return std::make_unique<FuncCallStmt>(func_name, std::move(func_args));
 }
 
-StmtPtr Parser::parse_var_assignment_stmt(bool from_for_cycle) {
+StmtPtr Parser::parse_var_asgn_stmt(bool from_for_cycle) {
     std::string var_name = consume(TokenType::ID, "Expected identifier", peek().line, peek().column).value;
 
     Token op = peek();
@@ -171,12 +171,12 @@ StmtPtr Parser::parse_for_cycle_stmt() {
         indexator = parse_var_decl_stmt();
     }
     else {
-        indexator = parse_var_assignment_stmt();
+        indexator = parse_var_asgn_stmt();
     }
     // `;` already missed before
     ExprPtr condition = parse_expr();
     consume(TokenType::SEMICOLON, "Expected ';'", peek().line, peek().column);
-    StmtPtr iteration = parse_var_assignment_stmt(true);
+    StmtPtr iteration = parse_var_asgn_stmt(true);
     consume(TokenType::RPAREN, "Expected ')'", peek().line, peek().column);
 
     std::vector<StmtPtr> block;
@@ -252,7 +252,8 @@ StmtPtr Parser::parse_return_stmt() {
 Argument Parser::parse_argument() {
     std::string arg_name = consume(TokenType::ID, "Expected identifier", peek().line, peek().column).value;
     consume(TokenType::COLON, "Expected ':'", peek().line, peek().column);
-    Type arg_type = consume_type();
+    bool is_const = match(TokenType::CONST);
+    Type arg_type = consume_type(is_const);
     ExprPtr arg_expr = nullptr;
     if (match(TokenType::EQ)) {
         arg_expr = parse_expr();

@@ -9,7 +9,7 @@
 #include <vector>
 
 enum class TypeValue {
-    I8, I16, I32, I64, F32, F64, U8, U16, U32, U64, BOOL, STRING, NOTHING, CLASS, ENUM
+    BOOL, I8, I16, I32, I64, F32, F64, U8, U16, U32, U64, STRING, NOTHING, CLASS, ENUM
 };
 
 struct Type {
@@ -195,16 +195,17 @@ struct Argument {
     ExprPtr expr;
 
     Argument(Type t, std::string n, ExprPtr e) : type(t), name(n), expr(std::move(e)) {}
+    Argument(const Argument& other) : type(other.type), name(other.name), expr(other.expr == nullptr ? nullptr : std::make_unique<Expr>(*other.expr)) {}
 };
 
 class FuncDeclStmt : public Stmt {
 public:
-    Type type;
+    Type return_type;
     std::string name;
     std::vector<Argument> args;
     std::vector<StmtPtr> block;
 
-    FuncDeclStmt(Type t, std::string n, std::vector<Argument> a, std::vector<StmtPtr> b) : type(t), name(n), args(std::move(a)), block(std::move(b)) {}
+    FuncDeclStmt(Type t, std::string n, std::vector<Argument> a, std::vector<StmtPtr> b) : return_type(t), name(n), args(std::move(a)), block(std::move(b)) {}
     ~FuncDeclStmt() override = default;
 };
 
