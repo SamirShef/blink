@@ -1,17 +1,17 @@
 #pragma once
 #include "../lexer/token.hpp"
 #include "ast.hpp"
-#include <string>
-#include <vector>
 
 class Parser {
 private:
     std::vector<Token> tokens;
     unsigned long tokens_len;
     int pos;
+    std::string file_name;
+    bool file_name_in_error_printed;
 
 public:
-    Parser(std::vector<Token> t) : tokens(t), tokens_len(t.size()), pos(0) {}
+    Parser(std::vector<Token> t, std::string fn) : tokens(t), tokens_len(t.size()), pos(0), file_name(fn), file_name_in_error_printed(false) {}
 
     std::vector<StmtPtr> parse();
 private:
@@ -44,10 +44,10 @@ private:
     ExprPtr create_compound_assignment_operator(std::string id);
     bool is_type(TokenType type) const;
     bool is_unsigned_type(TokenType type) const;
-    TypeValue token_type_to_type_value(Token token) const;
+    TypeValue token_type_to_type_value(Token token);
     Type consume_type(bool is_const = false);
     
-    Token peek(int rpos = 0) const;
+    Token peek(int rpos = 0);
     Token consume(TokenType type, std::string err_msg, int line, int column);
     bool match(TokenType type);
 };

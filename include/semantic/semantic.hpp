@@ -1,7 +1,4 @@
 #include "../../include/parser/ast.hpp"
-#include <string>
-#include <utility>
-#include <vector>
 #include <stack>
 #include <map>
 
@@ -20,9 +17,11 @@ private:
     };
     std::map<std::string, FunctionInfo> functions;
     std::stack<Type> functions_types_stack;
+    std::string file_name;
+    bool file_name_in_error_printed;
 
 public:
-    SemanticAnalyzer(std::vector<StmtPtr>& s) : stmts(s), blocks_deep(0) {
+    SemanticAnalyzer(std::vector<StmtPtr>& s, std::string fn) : stmts(s), blocks_deep(0), file_name(fn), file_name_in_error_printed(false) {
         variables.push({});
     }
 
@@ -38,8 +37,8 @@ private:
     void analyze_for_cycle_stmt(ForCycleStmt& fcs);
     void analyze_while_cycle_stmt(WhileCycleStmt& wcs);
     void analyze_do_while_cycle_stmt(DoWhileCycleStmt& wcs);
-    void analyze_break_stmt();
-    void analyze_continue_stmt();
+    void analyze_break_stmt(BreakStmt& bs);
+    void analyze_continue_stmt(ContinueStmt& cs);
     void analyze_return_stmt(ReturnStmt& rs);
 
     Type analyze_expr(const Expr& expr);
@@ -49,6 +48,6 @@ private:
     Type analyze_var_expr(const VarExpr& ve);
     Type analyze_func_call_expr(const FuncCallExpr& fce);
 
-    Type get_common_type(Type left_type, Type right_type);
+    Type get_common_type(Type left_type, Type right_type, int line);
     std::string type_to_string(Type type);
 };

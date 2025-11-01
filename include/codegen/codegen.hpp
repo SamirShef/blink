@@ -1,18 +1,15 @@
 #pragma once
-#include <llvm/IR/BasicBlock.h>
-#include <llvm/IR/Function.h>
 #include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/Module.h>
+#include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/IRBuilder.h>
-#include <llvm/IR/Type.h>
+#include <llvm/IR/Function.h>
+#include <llvm/IR/Module.h>
 #include <llvm/IR/Value.h>
+#include <llvm/IR/Type.h>
 
 #include "../parser/ast.hpp"
-#include <map>
 #include <stack>
-#include <string>
-#include <utility>
-#include <vector>
+#include <map>
 
 class CodeGenerator {
 private:
@@ -24,10 +21,12 @@ private:
     std::stack<std::map<std::string, llvm::Value*>> variables;
     std::map<std::string, llvm::Function*> functions;
     std::stack<std::pair<llvm::BasicBlock*, llvm::BasicBlock*>> loop_blocks;    // first for `break`, second for `continue`
+    std::string file_name;
+    bool file_name_in_error_printed;
 
 public:
-    CodeGenerator(std::string n, std::vector<StmtPtr>& s) : context(), builder(context), module(std::make_unique<llvm::Module>(n, context)),
-                                                           stmts(s), blocks_deep(0) {
+    CodeGenerator(std::string n, std::vector<StmtPtr>& s, std::string fn) : context(), builder(context)
+                , module(std::make_unique<llvm::Module>(n, context)), stmts(s), blocks_deep(0), file_name(fn), file_name_in_error_printed(false) {
         variables.push({});
     }
 
@@ -36,7 +35,7 @@ public:
     void print_ir() const;
 
 private:
-    llvm::Type* get_llvm_type(Type type);
+    llvm::Type* get_llvm_type(Type type, int line);
 
     void generate_stmt(const Stmt& stmt);
     void generate_var_decl_stmt(const VarDeclStmt& vds);
@@ -57,5 +56,5 @@ private:
     llvm::Value* generate_unary_expr(const UnaryExpr& ue);
     llvm::Value* generate_var_expr(const VarExpr& ve);
     llvm::Value* generate_func_call_expr(const FuncCallExpr& fce);
-    llvm::Value* implicitly_cast(llvm::Value* value, llvm::Type* expected_type);
+    llvm::Value* implicitly_cast(llvm::Value* value, llvm::Type* expected_type, int line);
 };

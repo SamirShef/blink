@@ -1,33 +1,26 @@
-#include <cmath>
-#include <cstdint>
-#include <cstdlib>
-#include <iostream>
-#include <llvm/ADT/APFloat.h>
-#include <llvm/ADT/APInt.h>
-#include <llvm/ADT/StringRef.h>
-#include <llvm/ADT/Twine.h>
-#include <llvm/IR/BasicBlock.h>
-#include <llvm/IR/Constant.h>
-#include <llvm/IR/Constants.h>
-#include <llvm/IR/DerivedTypes.h>
-#include <llvm/IR/Function.h>
-#include <llvm/IR/GlobalValue.h>
-#include <llvm/IR/GlobalVariable.h>
-#include <llvm/IR/InstrTypes.h>
-#include <llvm/IR/Instructions.h>
-#include <llvm/IR/Module.h>
-#include <llvm/IR/Type.h>
-#include <llvm/IR/Value.h>
-
-#include <llvm/Support/Casting.h>
 #include <llvm/Support/raw_ostream.h>
-#include <map>
-#include <memory>
-#include <stack>
-#include <string>
-#include <vector>
-#include "../../include/parser/ast.hpp"
+#include <llvm/IR/GlobalVariable.h>
+#include <llvm/Support/Casting.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/IR/DerivedTypes.h>
+#include <llvm/IR/GlobalValue.h>
+#include <llvm/ADT/StringRef.h>
+#include <llvm/IR/InstrTypes.h>
+#include <llvm/IR/BasicBlock.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/ADT/APFloat.h>
+#include <llvm/IR/Constant.h>
+#include <llvm/IR/Function.h>
+#include <llvm/ADT/Twine.h>
+#include <llvm/ADT/APInt.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/Value.h>
+#include <llvm/IR/Type.h>
+
+#include "../../include/exception/exception.hpp"
 #include "../../include/codegen/codegen.hpp"
+#include "../../include/parser/ast.hpp"
+#include <iostream>
 
 void CodeGenerator::generate() {
     llvm::Function* printf_func = module->getFunction("printf");
@@ -50,7 +43,7 @@ void CodeGenerator::print_ir() const {
     module->print(llvm::outs(), nullptr);
 }
 
-llvm::Type* CodeGenerator::get_llvm_type(Type type) {
+llvm::Type* CodeGenerator::get_llvm_type(Type type, int line) {
     switch (type.type) {
         case TypeValue::I8:
         case TypeValue::U8: {
@@ -108,8 +101,7 @@ llvm::Type* CodeGenerator::get_llvm_type(Type type) {
         case TypeValue::NOTHING:
             return llvm::Type::getVoidTy(context);
         default: {
-            std::cerr << "codegen: Unsupported type\n";
-            exit(1);
+            throw_error(file_name, file_name_in_error_printed, CODEGEN, "Unsupported type\n", line);
         }
     }
 }
@@ -149,16 +141,15 @@ void CodeGenerator::generate_stmt(const Stmt& stmt) {
         generate_return_stmt(*rs);
     }
     else {
-        std::cerr << "codegen: Unsupported statement\n";
-        exit(1);
+        throw_error(file_name, file_name_in_error_printed, CODEGEN, "Unsupported statement\n", stmt.line);
     }
 }
 
 void CodeGenerator::generate_var_decl_stmt(const VarDeclStmt& vds) {
-    llvm::Type* var_type = get_llvm_type(vds.type);
+    llvm::Type* var_type = get_llvm_type(vds.type, vds.line);
     llvm::Value* var_init_val = nullptr;
     if (vds.expr) {
-        var_init_val = implicitly_cast(generate_expr(*vds.expr), var_type);
+        var_init_val = implicitly_cast(generate_expr(*vds.expr), var_type, vds.line);
     }
     else {
         var_init_val = llvm::Constant::getNullValue(var_type);
@@ -175,10 +166,10 @@ void CodeGenerator::generate_var_decl_stmt(const VarDeclStmt& vds) {
 }
 
 void CodeGenerator::generate_func_decl_stmt(const FuncDeclStmt& fds) {
-    llvm::Type* func_ret_type = get_llvm_type(fds.return_type);
+    llvm::Type* func_ret_type = get_llvm_type(fds.return_type, fds.line);
     std::vector<llvm::Type*> param_types;
     for (const Argument& arg : fds.args) {
-        param_types.push_back(get_llvm_type(arg.type));
+        param_types.push_back(get_llvm_type(arg.type, fds.line));
     }
     llvm::FunctionType* func_type = llvm::FunctionType::get(func_ret_type, param_types, false);
     llvm::Function* func = llvm::Function::Create(func_type, llvm::Function::ExternalLinkage, fds.name, *module);
@@ -207,8 +198,7 @@ void CodeGenerator::generate_func_decl_stmt(const FuncDeclStmt& fds) {
 
 void CodeGenerator::generate_func_call_stmt(const FuncCallStmt& fcs) {
     if (functions.empty() || functions.find(fcs.name) == functions.end()) {
-        std::cerr << "codegen: Function '" << fcs.name << "' does not exist\n";
-        exit(1);
+        throw_error(file_name, file_name_in_error_printed, CODEGEN, "Function '" + fcs.name + "' does not exist\n", fcs.line);
     }
     
     std::vector<llvm::Value*> args;
@@ -234,8 +224,7 @@ void CodeGenerator::generate_var_asgn_stmt(const VarAsgnStmt& vas) {
         vars.pop();
     }
     if (!have_var) {
-        std::cerr << "codegen: Variable '" << vas.name << "' does not exist\n";
-        exit(1);
+        throw_error(file_name, file_name_in_error_printed, CODEGEN, "Variable '" + vas.name + "' does not exist\n", vas.line);
     }
 
     llvm::Type* var_type;
@@ -248,7 +237,7 @@ void CodeGenerator::generate_var_asgn_stmt(const VarAsgnStmt& vas) {
     else if (auto value = llvm::dyn_cast<llvm::Value>(var_ptr)) {
         var_type = value->getType();
     }
-    value = implicitly_cast(value, var_type);
+    value = implicitly_cast(value, var_type, vas.line);
 
     builder.CreateStore(value, var_ptr);
 }
@@ -412,8 +401,7 @@ llvm::Value* CodeGenerator::generate_expr(const Expr& expr) {
         return generate_func_call_expr(*fce);
     }
     else {
-        std::cerr << "codegen: Unsupported expression\n";
-        exit(1);
+        throw_error(file_name, file_name_in_error_printed, CODEGEN, "Unsupported expression\n", expr.line);
     }
 }
 
@@ -447,8 +435,7 @@ llvm::Value* CodeGenerator::generate_literal(const Literal& lit) {
                 return builder.CreateGlobalString(std::get<std::string>(value), "string_lit");
             }
         default:
-            std::cerr << "codegen: Unsupported literal\n";
-            exit(1);
+            throw_error(file_name, file_name_in_error_printed, CODEGEN, "Unsupported literal\n", lit.line);
     }
 }
 
@@ -493,11 +480,11 @@ llvm::Value* CodeGenerator::generate_binary_expr(const BinaryExpr& be) {
         exit(1);
     }
     if (left_type != common_type) {
-        left = implicitly_cast(left, common_type);
+        left = implicitly_cast(left, common_type, be.line);
         left_type = left->getType();
     }
     else if (right_type != common_type) {
-        right = implicitly_cast(right, common_type);
+        right = implicitly_cast(right, common_type, be.line);
         right_type = right->getType();
     }
     switch (be.op_type) {
@@ -629,14 +616,12 @@ llvm::Value* CodeGenerator::generate_var_expr(const VarExpr& ve) {
         vars.pop();
     }
 
-    std::cerr << "codegen: Variable '" << ve.name << "' does not exist\n";
-    exit(1);
+    throw_error(file_name, file_name_in_error_printed, CODEGEN, "Variable '" + ve.name + "' does not exist\n", ve.line);
 }
 
 llvm::Value* CodeGenerator::generate_func_call_expr(const FuncCallExpr& fce) {
     if (functions.empty() || functions.find(fce.name) == functions.end()) {
-        std::cerr << "codegen: Function '" << fce.name << "' does not exist\n";
-        exit(1);
+        throw_error(file_name, file_name_in_error_printed, CODEGEN, "Function '" + fce.name + "' does not exist\n", fce.line);
     }
     
     std::vector<llvm::Value*> args;
@@ -646,7 +631,7 @@ llvm::Value* CodeGenerator::generate_func_call_expr(const FuncCallExpr& fce) {
     return builder.CreateCall(functions[fce.name], args, fce.name + ".call");
 }
 
-llvm::Value* CodeGenerator::implicitly_cast(llvm::Value* value, llvm::Type* expected_type) {
+llvm::Value* CodeGenerator::implicitly_cast(llvm::Value* value, llvm::Type* expected_type, int line) {
     llvm::Type* value_type = value->getType();
 
     if (value_type == expected_type)  {

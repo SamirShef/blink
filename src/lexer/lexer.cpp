@@ -1,9 +1,6 @@
+#include "../../include/exception/exception.hpp"
 #include "../../include/lexer/lexer.hpp"
-#include <cctype>
-#include <cstdlib>
-#include <iostream>
 #include <map>
-#include <string>
 
 std::map<std::string, TokenType> keywords = {
     {"i8", TokenType::I8},
@@ -83,8 +80,7 @@ Token Lexer::tokenize_number() {
     while (pos < source_len && (std::isdigit(peek()) || peek() == '.')) {
         if (peek() == '.') {
             if (has_dot) {
-                std::cerr << "lexer: Invalid number literal (twice dot)\n";
-                exit(1);
+                throw_error(file_name, file_name_in_error_printed, LEXER, "Invalid number literal (" + std::to_string(line) + ':' + std::to_string(column) + ")\n", line);
             }
             has_dot = true;
         }
@@ -284,8 +280,7 @@ Token Lexer::tokenize_op() {
             advance();
             return Token(TokenType::B_XOR, "^", tmp_l, tmp_c);
         default:
-            std::cerr << "lexer: Unsupported operator: '" << c << "' (" << line << ':' << column << ")\n";
-            exit(1);
+            throw_error(file_name, file_name_in_error_printed, LEXER, "Unsupported operator: '" + std::string{1, c} + "' (" + std::to_string(line) + ':' + std::to_string(column) + ")\n", line);
     }
 }
 
@@ -329,15 +324,13 @@ const char Lexer::advance_escape_sequence() {
         case 'v':
             return '\v';
         default:
-            std::cerr << "lexer: Unsupported escape-sequence '\\" << c << "' (" << line << ':' << column - 2 << ")\n";
-            exit(1);
+            throw_error(file_name, file_name_in_error_printed, LEXER, "Unsupported escape-sequence '\\" + std::string{1, c} + "' (" + std::to_string(line) + ':' + std::to_string(column - 2) + ")\n", line);
     }
 }
 
-const char Lexer::peek(int rpos) const {
+const char Lexer::peek(int rpos) {
     if (pos + rpos >= source_len) {
-        std::cerr << "lexer: Index out of range: (" << pos + rpos << "/" << source_len << ")\n";
-        exit(1);
+        throw_error(file_name, file_name_in_error_printed, LEXER, "Index out of range: (" + std::to_string(pos + rpos) + "/" + std::to_string(source_len) + ")\n", line);
     }
     return source[pos + rpos];
 }

@@ -1,33 +1,26 @@
-#include <llvm/IR/GlobalVariable.h>
 #include <llvm/IR/LegacyPassManager.h>
-#include <llvm/IR/Module.h>
-#include <llvm/IR/Constants.h>
-#include <llvm/IR/IRBuilder.h>
-#include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/Module.h>
-#include <llvm/IRReader/IRReader.h>
-#include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Target/TargetOptions.h>
-#include <llvm/Support/FileSystem.h>
-#include <llvm/Support/raw_ostream.h>
-#include <llvm/MC/TargetRegistry.h>
-#include <llvm/Passes/PassBuilder.h>
-#include <llvm/Support/FileSystem.h>
-#include <llvm/Target/TargetMachine.h>
-#include <llvm/Target/TargetOptions.h>
 #include <llvm/TargetParser/Triple.h>
+#include <llvm/Support/raw_ostream.h>
+#include <llvm/Support/FileSystem.h>
+#include <llvm/Passes/PassBuilder.h>
+#include <llvm/MC/TargetRegistry.h>
+#include <llvm/IR/GlobalVariable.h>
+#include <llvm/IRReader/IRReader.h>
+#include <llvm/Support/SourceMgr.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/Module.h>
 
-#include "../include/codegen/codegen.hpp"
-#include "../include/lexer/lexer.hpp"
-#include "../include/parser/parser.hpp"
 #include "../include/semantic/semantic.hpp"
+#include "../include/codegen/codegen.hpp"
+#include "../include/parser/parser.hpp"
+#include "../include/lexer/lexer.hpp"
 #include <iostream>
 #include <fstream>
-#include <memory>
-#include <string>
-#include <vector>
 
 std::string token_to_string(Token& token);
 
@@ -67,23 +60,23 @@ int main(int argc, char* argv[]) {
     
     std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
-    Lexer lexer(content);
+    Lexer lexer(content, argv[1]);
     std::vector<Token> tokens = lexer.tokenize();
 
     /* for (Token token : tokens) {
         std::cout << token_to_string(token) << '\n';
     } */
 
-    Parser parser(tokens);
+    Parser parser(tokens, argv[1]);
     std::vector<StmtPtr> stmts = parser.parse();
 
     std::cout << "CODE ANALYZING...\n";
-    SemanticAnalyzer semantic(stmts);
+    SemanticAnalyzer semantic(stmts, argv[1]);
     semantic.analyze();
     
     std::cout << "CODE ANALYZING SUCCESS. CODE GENERATING...\n";
 
-    CodeGenerator codegen(source_path, stmts);
+    CodeGenerator codegen(source_path, stmts, argv[1]);
     codegen.generate();
     codegen.print_ir();
     std::unique_ptr<llvm::Module> module = codegen.get_module();
