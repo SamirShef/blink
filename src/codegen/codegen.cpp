@@ -108,7 +108,7 @@ llvm::Type* CodeGenerator::get_llvm_type(Type type) {
         case TypeValue::NOTHING:
             return llvm::Type::getVoidTy(context);
         default: {
-            std::cerr << "Unsupported type in get_llvm_type\n";
+            std::cerr << "codegen: Unsupported type\n";
             exit(1);
         }
     }
@@ -149,7 +149,7 @@ void CodeGenerator::generate_stmt(const Stmt& stmt) {
         generate_return_stmt(*rs);
     }
     else {
-        std::cerr << "Unsupported statement in codegen\n";
+        std::cerr << "codegen: Unsupported statement\n";
         exit(1);
     }
 }
@@ -175,7 +175,7 @@ void CodeGenerator::generate_var_decl_stmt(const VarDeclStmt& vds) {
 }
 
 void CodeGenerator::generate_func_decl_stmt(const FuncDeclStmt& fds) {
-    llvm::Type* func_ret_type = get_llvm_type(fds.type);
+    llvm::Type* func_ret_type = get_llvm_type(fds.return_type);
     std::vector<llvm::Type*> param_types;
     for (const Argument& arg : fds.args) {
         param_types.push_back(get_llvm_type(arg.type));
@@ -193,14 +193,12 @@ void CodeGenerator::generate_func_decl_stmt(const FuncDeclStmt& fds) {
     for (llvm::Argument& arg : func->args()) {
         arg.setName(fds.args[index].name);
         llvm::AllocaInst* arg_alloca = builder.CreateAlloca(arg.getType(), nullptr, fds.args[index].name);
+        builder.CreateStore(&arg, arg_alloca);
         variables.top().emplace(fds.args[index].name, arg_alloca);
+        index++;
     }
     for (const StmtPtr& stmt : fds.block) {
         generate_stmt(*stmt);
-    }
-
-    if (func_ret_type->isVoidTy()) {
-        builder.CreateRetVoid();
     }
 
     blocks_deep--;
@@ -209,7 +207,7 @@ void CodeGenerator::generate_func_decl_stmt(const FuncDeclStmt& fds) {
 
 void CodeGenerator::generate_func_call_stmt(const FuncCallStmt& fcs) {
     if (functions.empty() || functions.find(fcs.name) == functions.end()) {
-        std::cerr << "Function '" << fcs.name << "' does not exist\n";
+        std::cerr << "codegen: Function '" << fcs.name << "' does not exist\n";
         exit(1);
     }
     
@@ -236,7 +234,7 @@ void CodeGenerator::generate_var_asgn_stmt(const VarAsgnStmt& vas) {
         vars.pop();
     }
     if (!have_var) {
-        std::cerr << "Variable '" << vas.name << "' does not exist\n";
+        std::cerr << "codegen: Variable '" << vas.name << "' does not exist\n";
         exit(1);
     }
 
@@ -246,6 +244,9 @@ void CodeGenerator::generate_var_asgn_stmt(const VarAsgnStmt& vas) {
     }
     else if (auto local = llvm::dyn_cast<llvm::AllocaInst>(var_ptr)) {
         var_type = local->getAllocatedType();
+    }
+    else if (auto value = llvm::dyn_cast<llvm::Value>(var_ptr)) {
+        var_type = value->getType();
     }
     value = implicitly_cast(value, var_type);
 
@@ -454,80 +455,124 @@ llvm::Value* CodeGenerator::generate_literal(const Literal& lit) {
 llvm::Value* CodeGenerator::generate_binary_expr(const BinaryExpr& be) {
     llvm::Value* left = generate_expr(*be.left);
     llvm::Value* right = generate_expr(*be.right);
+
+    auto get_common_type = [&](llvm::Value* left, llvm::Value* right) -> llvm::Type* {
+        llvm::Type* left_type = left->getType();
+        llvm::Type* right_type = right->getType();
+
+        if (left_type->isDoubleTy() || right_type->isDoubleTy()) {
+            return llvm::Type::getDoubleTy(context);
+        }
+        else if (left_type->isFloatTy() && right_type->isFloatTy()) {
+            return llvm::Type::getFloatTy(context);
+        }
+        else if (left_type->isIntegerTy() && right_type->isIntegerTy()) {
+            unsigned left_width = left_type->getIntegerBitWidth();
+            unsigned right_width = right_type->getIntegerBitWidth();
+
+            if (left_width == right_width || left_width > right_width) {
+                return left_type;
+            }
+            else {
+                return right_type;
+            }
+        }
+
+        return nullptr;
+    };
     
+    llvm::Type* left_type = left->getType();
+    llvm::Type* right_type = right->getType();
+    llvm::Type* common_type = get_common_type(left, right);
+    if (common_type == nullptr) {
+        std::cerr << "codegen: There is no common type between ";
+        left_type->print(llvm::outs());
+        std::cerr << " and ";
+        right->getType()->print(llvm::outs());
+        std::cerr << '\n';
+        exit(1);
+    }
+    if (left_type != common_type) {
+        left = implicitly_cast(left, common_type);
+        left_type = left->getType();
+    }
+    else if (right_type != common_type) {
+        right = implicitly_cast(right, common_type);
+        right_type = right->getType();
+    }
     switch (be.op_type) {
         case TokenType::PLUS:
-            if (left->getType()->isFloatingPointTy() || right->getType()->isFloatingPointTy()) {
+            if (left_type->isFloatingPointTy() || right_type->isFloatingPointTy()) {
                 return builder.CreateFAdd(left, right, "addtmp");
             }
             else {
                 return builder.CreateAdd(left, right, "addtmp");
             }
         case TokenType::MINUS:
-            if (left->getType()->isFloatingPointTy() || right->getType()->isFloatingPointTy()) {
+            if (left_type->isFloatingPointTy() || right_type->isFloatingPointTy()) {
                 return builder.CreateFSub(left, right, "subtmp");
             }
             else {
                 return builder.CreateSub(left, right, "subtmp");
             }
         case TokenType::MULT:
-            if (left->getType()->isFloatingPointTy() || right->getType()->isFloatingPointTy()) {
+            if (left_type->isFloatingPointTy() || right_type->isFloatingPointTy()) {
                 return builder.CreateFMul(left, right, "multmp");
             }
             else {
                 return builder.CreateMul(left, right, "multmp");
             }
         case TokenType::DIV:
-            if (left->getType()->isFloatingPointTy() || right->getType()->isFloatingPointTy()) {
+            if (left_type->isFloatingPointTy() || right_type->isFloatingPointTy()) {
                 return builder.CreateFDiv(left, right, "divtmp");
             }
             else {
                 return builder.CreateSDiv(left, right, "divtmp");
             }
         case TokenType::MODULO:
-            if (left->getType()->isFloatingPointTy() || right->getType()->isFloatingPointTy()) {
+            if (left_type->isFloatingPointTy() || right_type->isFloatingPointTy()) {
                 return builder.CreateFRem(left, right, "remtmp");
             }
             else {
                 return builder.CreateSRem(left, right, "remtmp");
             }
         case TokenType::GT:
-            if (left->getType()->isFloatingPointTy() || right->getType()->isFloatingPointTy()) {
+            if (left_type->isFloatingPointTy() || right_type->isFloatingPointTy()) {
                 return builder.CreateFCmpOGT(left, right, "gttmp");
             }
             else {
                 return builder.CreateICmpSGT(left, right, "gttmp");
             }
         case TokenType::GT_EQ:
-            if (left->getType()->isFloatingPointTy() || right->getType()->isFloatingPointTy()) {
+            if (left_type->isFloatingPointTy() || right_type->isFloatingPointTy()) {
                 return builder.CreateFCmpOGE(left, right, "getmp");
             }
             else {
                 return builder.CreateICmpSGE(left, right, "getmp");
             }
         case TokenType::LS:
-            if (left->getType()->isFloatingPointTy() || right->getType()->isFloatingPointTy()) {
+            if (left_type->isFloatingPointTy() || right_type->isFloatingPointTy()) {
                 return builder.CreateFCmpOLT(left, right, "lttmp");
             }
             else {
                 return builder.CreateICmpSLT(left, right, "lttmp");
             }
         case TokenType::LS_EQ:
-            if (left->getType()->isFloatingPointTy() || right->getType()->isFloatingPointTy()) {
+            if (left_type->isFloatingPointTy() || right_type->isFloatingPointTy()) {
                 return builder.CreateFCmpOLE(left, right, "letmp");
             }
             else {
                 return builder.CreateICmpSLE(left, right, "letmp");
             }
         case TokenType::EQ_EQ:
-            if (left->getType()->isFloatingPointTy() || right->getType()->isFloatingPointTy()) {
+            if (left_type->isFloatingPointTy() || right_type->isFloatingPointTy()) {
                 return builder.CreateFCmpOEQ(left, right, "eqtmp");
             }
             else {
                 return builder.CreateICmpEQ(left, right, "eqtmp");
             }
         case TokenType::NOT_EQ:
-            if (left->getType()->isFloatingPointTy() || right->getType()->isFloatingPointTy()) {
+            if (left_type->isFloatingPointTy() || right_type->isFloatingPointTy()) {
                 return builder.CreateFCmpONE(left, right, "netmp");
             }
             else {
@@ -567,16 +612,19 @@ llvm::Value* CodeGenerator::generate_var_expr(const VarExpr& ve) {
     std::stack<std::map<std::string, llvm::Value*>> vars = variables;
     while (!vars.empty()) {
         std::map<std::string, llvm::Value*>& c_scope = vars.top();
-        auto varIt = c_scope.find(ve.name);
-        if (varIt != c_scope.end()) {
+        auto var_it = c_scope.find(ve.name);
+        if (var_it != c_scope.end()) {
             llvm::Type* type = nullptr;
-            if (auto global = llvm::dyn_cast<llvm::GlobalVariable>(varIt->second)) {
+            if (auto global = llvm::dyn_cast<llvm::GlobalVariable>(var_it->second)) {
                 type = global->getValueType();
             }
-            else if (auto local = llvm::dyn_cast<llvm::AllocaInst>(varIt->second)) {
+            else if (auto local = llvm::dyn_cast<llvm::AllocaInst>(var_it->second)) {
                 type = local->getAllocatedType();
             }
-            return builder.CreateLoad(type, varIt->second, ve.name + ".load");
+            else if (auto value = llvm::dyn_cast<llvm::Value>(var_it->second)) {
+                type = value->getType();
+            }
+            return builder.CreateLoad(type, var_it->second, ve.name + ".load");
         }
         vars.pop();
     }
@@ -612,10 +660,10 @@ llvm::Value* CodeGenerator::implicitly_cast(llvm::Value* value, llvm::Type* expe
             return value;
         }
         else if (value_width > expected_width) {
-            return builder.CreateTrunc(value, expected_type);
+            return builder.CreateTrunc(value, expected_type, "trunctmp");
         }
         else {
-            return builder.CreateSExt(value, expected_type);
+            return builder.CreateSExt(value, expected_type, "sexttmp");
         }
     }
     else if (value_type->isFloatingPointTy() && expected_type->isFloatingPointTy()) {
@@ -623,14 +671,14 @@ llvm::Value* CodeGenerator::implicitly_cast(llvm::Value* value, llvm::Type* expe
             return value;
         }
         else if (value_type->isFloatTy() && expected_type->isDoubleTy()) {
-            return builder.CreateFPExt(value, expected_type);
+            return builder.CreateFPExt(value, expected_type, "fpexttmp");
         }
         else {
-            return builder.CreateFPTrunc(value, expected_type);
+            return builder.CreateFPTrunc(value, expected_type, "fptrunctmp");
         }
     }
     else if (value_type->isIntegerTy() && expected_type->isFloatingPointTy()) {
-        return builder.CreateSIToFP(value, expected_type);
+        return builder.CreateSIToFP(value, expected_type, "sitofptmp");
     }
 
     std::cerr << "codegen: Unknown type to implicitly cast (";

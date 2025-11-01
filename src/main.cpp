@@ -1,4 +1,3 @@
-#include "../include/codegen/codegen.hpp"
 #include <llvm/IR/GlobalVariable.h>
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/Module.h>
@@ -15,14 +14,17 @@
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/MC/TargetRegistry.h>
 #include <llvm/Passes/PassBuilder.h>
-
-#include "../include/lexer/lexer.hpp"
-#include "../include/parser/parser.hpp"
-#include <iostream>
-#include <fstream>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Target/TargetOptions.h>
+#include <llvm/TargetParser/Triple.h>
+
+#include "../include/codegen/codegen.hpp"
+#include "../include/lexer/lexer.hpp"
+#include "../include/parser/parser.hpp"
+#include "../include/semantic/semantic.hpp"
+#include <iostream>
+#include <fstream>
 #include <memory>
 #include <string>
 #include <vector>
@@ -68,20 +70,26 @@ int main(int argc, char* argv[]) {
     Lexer lexer(content);
     std::vector<Token> tokens = lexer.tokenize();
 
-    for (Token token : tokens) {
+    /* for (Token token : tokens) {
         std::cout << token_to_string(token) << '\n';
-    }
+    } */
 
     Parser parser(tokens);
     std::vector<StmtPtr> stmts = parser.parse();
 
-    std::cout << "CODE GENERATING\n";
-    CodeGenerator codegen(source_path, std::move(stmts));
+    std::cout << "CODE ANALYZING...\n";
+    SemanticAnalyzer semantic(stmts);
+    semantic.analyze();
+    
+    std::cout << "CODE ANALYZING SUCCESS. CODE GENERATING...\n";
+
+    CodeGenerator codegen(source_path, stmts);
     codegen.generate();
     codegen.print_ir();
     std::unique_ptr<llvm::Module> module = codegen.get_module();
+    
+    std::cout << "CODE GENERATING SUCESS. COMPILING...\n";
 
-    std::cout << "COMPILING\n";
     llvm::InitializeNativeTarget();
     llvm::InitializeNativeTargetAsmPrinter();
     llvm::InitializeNativeTargetAsmParser();
@@ -93,7 +101,7 @@ int main(int argc, char* argv[]) {
     }
     auto getTriple = []() -> std::string
     {
-        const char* env_triple = std::getenv("KRC_TRIPLE");
+        const char* env_triple = std::getenv("BLINK_TRIPLE");
         if (env_triple && *env_triple) return std::string(env_triple);
 
         std::array<char, 256> buffer{};
@@ -132,7 +140,7 @@ int main(int argc, char* argv[]) {
     };
     std::string target_triple = getTriple();
     if (target_triple.empty()) target_triple = defaultTripleForHost();
-    module->setTargetTriple(target_triple);
+    module->setTargetTriple(llvm::Triple(target_triple));
 
     std::string error;
     const llvm::Target* target = llvm::TargetRegistry::lookupTarget(target_triple, error);
@@ -214,7 +222,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::cout << "Built executable: " << executable_path << std::endl;
+    std::cout << "COMPILING SUCCESS. Built executable: " << executable_path << std::endl;
     
     if (std::remove(object_path.c_str()) != 0) std::cerr << "Warning: Failed to remove object file: " << object_path << '\n';
 

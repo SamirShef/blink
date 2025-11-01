@@ -19,15 +19,15 @@ private:
     llvm::LLVMContext context;
     llvm::IRBuilder<> builder;
     std::unique_ptr<llvm::Module> module;
-    std::vector<StmtPtr> stmts;
+    std::vector<StmtPtr>& stmts;
     unsigned blocks_deep;
     std::stack<std::map<std::string, llvm::Value*>> variables;
     std::map<std::string, llvm::Function*> functions;
     std::stack<std::pair<llvm::BasicBlock*, llvm::BasicBlock*>> loop_blocks;    // first for `break`, second for `continue`
 
 public:
-    CodeGenerator(std::string n, std::vector<StmtPtr> s) : context(), builder(context), module(std::make_unique<llvm::Module>(n, context)),
-                                                           stmts(std::move(s)), blocks_deep(0) {
+    CodeGenerator(std::string n, std::vector<StmtPtr>& s) : context(), builder(context), module(std::make_unique<llvm::Module>(n, context)),
+                                                           stmts(s), blocks_deep(0) {
         variables.push({});
     }
 
