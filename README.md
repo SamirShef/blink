@@ -111,6 +111,13 @@ func main() : i32 {
 }
 ```
 
+### Include files
+```cpp
+$include <file_name>
+
+...
+```
+
 ## Download
 ### Install LLVM
 Arch/Manjaro:
