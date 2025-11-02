@@ -7,11 +7,9 @@ private:
     std::vector<Token> tokens;
     unsigned long tokens_len;
     int pos;
-    std::string file_name;
-    bool file_name_in_error_printed;
 
 public:
-    Parser(std::vector<Token> t, std::string fn) : tokens(t), tokens_len(t.size()), pos(0), file_name(fn), file_name_in_error_printed(false) {}
+    Parser(std::vector<Token> t) : tokens(t), tokens_len(t.size()), pos(0) {}
 
     std::vector<StmtPtr> parse();
 private:
@@ -47,7 +45,7 @@ private:
     TypeValue token_type_to_type_value(Token token);
     Type consume_type(bool is_const = false);
     
-    Token peek(int rpos = 0);
+    Token peek(int rpos = 0) const;
     Token consume(TokenType type, std::string err_msg, int line, int column);
     bool match(TokenType type);
 };

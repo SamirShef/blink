@@ -17,11 +17,9 @@ private:
     };
     std::map<std::string, FunctionInfo> functions;
     std::stack<Type> functions_types_stack;
-    std::string file_name;
-    bool file_name_in_error_printed;
 
 public:
-    SemanticAnalyzer(std::vector<StmtPtr>& s, std::string fn) : stmts(s), blocks_deep(0), file_name(fn), file_name_in_error_printed(false) {
+    SemanticAnalyzer(std::vector<StmtPtr>& s) : stmts(s), blocks_deep(0) {
         variables.push({});
     }
 
@@ -48,6 +46,6 @@ private:
     Type analyze_var_expr(const VarExpr& ve);
     Type analyze_func_call_expr(const FuncCallExpr& fce);
 
-    Type get_common_type(Type left_type, Type right_type, int line);
+    Type get_common_type(Type left_type, Type right_type, Token first_token);
     std::string type_to_string(Type type);
 };

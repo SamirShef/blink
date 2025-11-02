@@ -92,5 +92,7 @@ struct Token {
     int line;
     int column;
 
-    Token(TokenType t, std::string v, int l, int c) : type(t), value(v), line(l), column(c) {}
+    std::string file_name;
+
+    Token(TokenType t, std::string v, int l, int c, std::string fn) : type(t), value(v), line(l), column(c), file_name(fn) {}
 };

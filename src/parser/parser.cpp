@@ -50,7 +50,7 @@ StmtPtr Parser::parse_stmt() {
         return parse_return_stmt();
     }
     else {
-        throw_error(file_name, file_name_in_error_printed, PARSER, "Unsupported token '" + peek().value + "' (" + std::to_string(peek().line) + ':' + std::to_string(peek().column) + ")\n", peek().line);
+        throw_error(peek().file_name, PARSER, "Unsupported token '" + peek().value + "' (" + std::to_string(peek().line) + ':' + std::to_string(peek().column) + ")\n", peek().line);
     }
 }
 
@@ -60,7 +60,7 @@ StmtPtr Parser::parse_var_decl_stmt() {
         is_const = true;
     }
     else if (match(TokenType::VAR)) {}
-    int line = peek(-1).line;
+    Token var_keyword = peek(-1);
     std::string var_name = consume(TokenType::ID, "Expected identifier", peek().line, peek().column).value;
     consume(TokenType::COLON, "Expected ':'", peek().line, peek().column);
     Type var_type = consume_type(is_const);
@@ -72,7 +72,7 @@ StmtPtr Parser::parse_var_decl_stmt() {
 
     consume(TokenType::SEMICOLON, "Expected ';'", peek().line, peek().column);
     
-    return std::make_unique<VarDeclStmt>(var_type, var_name, std::move(var_expr), line);
+    return std::make_unique<VarDeclStmt>(var_type, var_name, std::move(var_expr), var_keyword);
 }
 
 StmtPtr Parser::parse_func_decl_stmt() {
@@ -96,7 +96,7 @@ StmtPtr Parser::parse_func_decl_stmt() {
         block.push_back(parse_stmt());
     }
     
-    return std::make_unique<FuncDeclStmt>(func_type, func_name, std::move(args), std::move(block), func_name_token.line);
+    return std::make_unique<FuncDeclStmt>(func_type, func_name, std::move(args), std::move(block), func_name_token);
 }
 
 StmtPtr Parser::parse_func_call_stmt() {
@@ -111,7 +111,7 @@ StmtPtr Parser::parse_func_call_stmt() {
         }
     }
     consume(TokenType::SEMICOLON, "Expected ';'", peek().line, peek().column);
-    return std::make_unique<FuncCallStmt>(func_name, std::move(func_args), func_name_token.line);
+    return std::make_unique<FuncCallStmt>(func_name, std::move(func_args), func_name_token);
 }
 
 StmtPtr Parser::parse_var_asgn_stmt(bool from_for_cycle) {
@@ -130,7 +130,7 @@ StmtPtr Parser::parse_var_asgn_stmt(bool from_for_cycle) {
     if (!from_for_cycle) {
         consume(TokenType::SEMICOLON, "Expected ';'", peek().line, peek().column);
     }
-    return std::make_unique<VarAsgnStmt>(var_name, std::move(expr), var_name_token.line);
+    return std::make_unique<VarAsgnStmt>(var_name, std::move(expr), var_name_token);
 }
 
 StmtPtr Parser::parse_if_stmt() {
@@ -160,7 +160,7 @@ StmtPtr Parser::parse_if_stmt() {
         }
     }
 
-    return std::make_unique<IfStmt>(std::move(condition), std::move(true_block), std::move(false_block), if_keyword.line);
+    return std::make_unique<IfStmt>(std::move(condition), std::move(true_block), std::move(false_block), if_keyword);
 }
 
 StmtPtr Parser::parse_for_cycle_stmt() {
@@ -189,7 +189,7 @@ StmtPtr Parser::parse_for_cycle_stmt() {
         }
     }
 
-    return std::make_unique<ForCycleStmt>(std::move(indexator), std::move(condition), std::move(iteration), std::move(block), for_keyword.line);
+    return std::make_unique<ForCycleStmt>(std::move(indexator), std::move(condition), std::move(iteration), std::move(block), for_keyword);
 }
 
 StmtPtr Parser::parse_while_cycle_stmt() {
@@ -208,7 +208,7 @@ StmtPtr Parser::parse_while_cycle_stmt() {
         }
     }
 
-    return std::make_unique<WhileCycleStmt>(std::move(condition), std::move(block), while_keyword.line);
+    return std::make_unique<WhileCycleStmt>(std::move(condition), std::move(block), while_keyword);
 }
 
 StmtPtr Parser::parse_do_while_cycle_stmt() {
@@ -229,19 +229,19 @@ StmtPtr Parser::parse_do_while_cycle_stmt() {
     consume(TokenType::RPAREN, "Expected ')'", peek().line, peek().column);
     consume(TokenType::SEMICOLON, "Expected ';'", peek().line, peek().column);
 
-    return std::make_unique<DoWhileCycleStmt>(std::move(condition), std::move(block), do_keyword.line);
+    return std::make_unique<DoWhileCycleStmt>(std::move(condition), std::move(block), do_keyword);
 }
 
 StmtPtr Parser::parse_break_stmt() {
     Token break_keyword = peek(-1);
     consume(TokenType::SEMICOLON, "Expected ';'", peek().line, peek().column);
-    return std::make_unique<BreakStmt>(break_keyword.line);
+    return std::make_unique<BreakStmt>(break_keyword);
 }
 
 StmtPtr Parser::parse_continue_stmt() {
     Token continue_keyword = peek(-1);
     consume(TokenType::SEMICOLON, "Expected ';'", peek().line, peek().column);
-    return std::make_unique<ContinueStmt>(continue_keyword.line);
+    return std::make_unique<ContinueStmt>(continue_keyword);
 }
 
 StmtPtr Parser::parse_return_stmt() {
@@ -251,7 +251,7 @@ StmtPtr Parser::parse_return_stmt() {
         expr = parse_expr();
     }
     consume(TokenType::SEMICOLON, "Expected ';'", peek().line, peek().column);
-    return std::make_unique<ReturnStmt>(std::move(expr), return_keyword.line);
+    return std::make_unique<ReturnStmt>(std::move(expr), return_keyword);
 }
 
 Argument Parser::parse_argument() {
@@ -267,7 +267,7 @@ Argument Parser::parse_argument() {
     if (peek().type != TokenType::RPAREN) {
         consume(TokenType::COMMA, "Expected ','", peek().line, peek().column);
     }
-    return Argument(arg_type, arg_name, std::move(arg_expr), arg_name_token.line);
+    return Argument(arg_type, arg_name, std::move(arg_expr), arg_name_token);
 }
 
 ExprPtr Parser::parse_expr() {
@@ -278,7 +278,7 @@ ExprPtr Parser::parse_l_and() {
     ExprPtr expr = parse_l_or();
     
     while (match(TokenType::L_AND)) {
-        expr = std::make_unique<BinaryExpr>(TokenType::L_AND, std::move(expr), std::move(parse_l_or()), expr->line);
+        expr = std::make_unique<BinaryExpr>(TokenType::L_AND, std::move(expr), std::move(parse_l_or()), expr->first_token);
     }
 
     return expr;
@@ -288,7 +288,7 @@ ExprPtr Parser::parse_l_or() {
     ExprPtr expr = parse_equality();
     
     while (match(TokenType::L_OR)) {
-        expr = std::make_unique<BinaryExpr>(TokenType::L_OR, std::move(expr), std::move(parse_equality()), expr->line);
+        expr = std::make_unique<BinaryExpr>(TokenType::L_OR, std::move(expr), std::move(parse_equality()), expr->first_token);
     }
 
     return expr;
@@ -299,10 +299,10 @@ ExprPtr Parser::parse_equality() {
     
     while (1) {
         if (match(TokenType::EQ_EQ)) {
-            expr = std::make_unique<BinaryExpr>(TokenType::EQ_EQ, std::move(expr), std::move(parse_comparation()), expr->line);
+            expr = std::make_unique<BinaryExpr>(TokenType::EQ_EQ, std::move(expr), std::move(parse_comparation()), expr->first_token);
         }
         else if (match(TokenType::NOT_EQ)) {
-            expr = std::make_unique<BinaryExpr>(TokenType::NOT_EQ, std::move(expr), std::move(parse_comparation()), expr->line);
+            expr = std::make_unique<BinaryExpr>(TokenType::NOT_EQ, std::move(expr), std::move(parse_comparation()), expr->first_token);
         }
         else {
             break;
@@ -317,16 +317,16 @@ ExprPtr Parser::parse_comparation() {
     
     while (1) {
         if (match(TokenType::GT)) {
-            expr = std::make_unique<BinaryExpr>(TokenType::GT, std::move(expr), std::move(parse_multiplicative()), expr->line);
+            expr = std::make_unique<BinaryExpr>(TokenType::GT, std::move(expr), std::move(parse_multiplicative()), expr->first_token);
         }
         else if (match(TokenType::GT_EQ)) {
-            expr = std::make_unique<BinaryExpr>(TokenType::GT_EQ, std::move(expr), std::move(parse_multiplicative()), expr->line);
+            expr = std::make_unique<BinaryExpr>(TokenType::GT_EQ, std::move(expr), std::move(parse_multiplicative()), expr->first_token);
         }
         else if (match(TokenType::LS)) {
-            expr = std::make_unique<BinaryExpr>(TokenType::LS, std::move(expr), std::move(parse_multiplicative()), expr->line);
+            expr = std::make_unique<BinaryExpr>(TokenType::LS, std::move(expr), std::move(parse_multiplicative()), expr->first_token);
         }
         else if (match(TokenType::LS_EQ)) {
-            expr = std::make_unique<BinaryExpr>(TokenType::LS_EQ, std::move(expr), std::move(parse_multiplicative()), expr->line);
+            expr = std::make_unique<BinaryExpr>(TokenType::LS_EQ, std::move(expr), std::move(parse_multiplicative()), expr->first_token);
         }
         else {
             break;
@@ -341,13 +341,13 @@ ExprPtr Parser::parse_multiplicative() {
     
     while (1) {
         if (match(TokenType::MULT)) {
-            expr = std::make_unique<BinaryExpr>(TokenType::MULT, std::move(expr), std::move(parse_additive()), expr->line);
+            expr = std::make_unique<BinaryExpr>(TokenType::MULT, std::move(expr), std::move(parse_additive()), expr->first_token);
         }
         else if (match(TokenType::DIV)) {
-            expr = std::make_unique<BinaryExpr>(TokenType::DIV, std::move(expr), std::move(parse_additive()), expr->line);
+            expr = std::make_unique<BinaryExpr>(TokenType::DIV, std::move(expr), std::move(parse_additive()), expr->first_token);
         }
         else if (match(TokenType::MODULO)) {
-            expr = std::make_unique<BinaryExpr>(TokenType::MODULO, std::move(expr), std::move(parse_additive()), expr->line);
+            expr = std::make_unique<BinaryExpr>(TokenType::MODULO, std::move(expr), std::move(parse_additive()), expr->first_token);
         }
         else {
             break;
@@ -362,10 +362,10 @@ ExprPtr Parser::parse_additive() {
     
     while (1) {
         if (match(TokenType::MINUS)) {
-            expr = std::make_unique<BinaryExpr>(TokenType::MINUS, std::move(expr), std::move(parse_unary()), expr->line);
+            expr = std::make_unique<BinaryExpr>(TokenType::MINUS, std::move(expr), std::move(parse_unary()), expr->first_token);
         }
         else if (match(TokenType::PLUS)) {
-            expr = std::make_unique<BinaryExpr>(TokenType::PLUS, std::move(expr), std::move(parse_unary()), expr->line);
+            expr = std::make_unique<BinaryExpr>(TokenType::PLUS, std::move(expr), std::move(parse_unary()), expr->first_token);
         }
         else {
             break;
@@ -378,10 +378,10 @@ ExprPtr Parser::parse_additive() {
 ExprPtr Parser::parse_unary() {
     while (1) {
         if (match(TokenType::MINUS)) {
-            return std::make_unique<UnaryExpr>(TokenType::MINUS, std::move(parse_primary()), peek().line);
+            return std::make_unique<UnaryExpr>(TokenType::MINUS, std::move(parse_primary()), peek());
         }
         else if (match(TokenType::L_NOT)) {
-            return std::make_unique<UnaryExpr>(TokenType::L_NOT, std::move(parse_primary()), peek().line);
+            return std::make_unique<UnaryExpr>(TokenType::L_NOT, std::move(parse_primary()), peek());
         }
         else {
             break;
@@ -397,40 +397,40 @@ ExprPtr Parser::parse_primary() {
     switch (token.type) {
         case TokenType::I8_LIT:
             pos++;
-            return std::make_unique<I8Literal>(token.value[0], token.line);
+            return std::make_unique<I8Literal>(token.value[0], token);
         case TokenType::I16_LIT:
             pos++;
-            return std::make_unique<I16Literal>(std::stoll(token.value), token.line);
+            return std::make_unique<I16Literal>(std::stoll(token.value), token);
         case TokenType::I32_LIT:
             pos++;
-            return std::make_unique<I32Literal>(std::stoll(token.value), token.line);
+            return std::make_unique<I32Literal>(std::stoll(token.value), token);
         case TokenType::I64_LIT:
             pos++;
-            return std::make_unique<I64Literal>(std::stoll(token.value), token.line);
+            return std::make_unique<I64Literal>(std::stoll(token.value), token);
         case TokenType::F32_LIT:
             pos++;
-            return std::make_unique<F32Literal>(std::stold(token.value), token.line);
+            return std::make_unique<F32Literal>(std::stold(token.value), token);
         case TokenType::F64_LIT:
             pos++;
-            return std::make_unique<F64Literal>(std::stold(token.value), token.line);
+            return std::make_unique<F64Literal>(std::stold(token.value), token);
         case TokenType::U8_LIT:
             pos++;
-            return std::make_unique<U8Literal>((std::uint8_t)(token.value[0]), token.line);
+            return std::make_unique<U8Literal>((std::uint8_t)(token.value[0]), token);
         case TokenType::U16_LIT:
             pos++;
-            return std::make_unique<U16Literal>((std::uint16_t)std::stoull(token.value), token.line);
+            return std::make_unique<U16Literal>((std::uint16_t)std::stoull(token.value), token);
         case TokenType::U32_LIT:
             pos++;
-            return std::make_unique<U32Literal>((std::uint32_t)std::stoull(token.value), token.line);
+            return std::make_unique<U32Literal>((std::uint32_t)std::stoull(token.value), token);
         case TokenType::U64_LIT:
             pos++;
-            return std::make_unique<U64Literal>((std::uint64_t)std::stoull(token.value), token.line);
+            return std::make_unique<U64Literal>((std::uint64_t)std::stoull(token.value), token);
         case TokenType::BOOL_LIT:
             pos++;
-            return std::make_unique<BoolLiteral>(token.value == "true", token.line);
+            return std::make_unique<BoolLiteral>(token.value == "true", token);
         case TokenType::STRING_LIT:
             pos++;
-            return std::make_unique<StringLiteral>(token.value, token.line);
+            return std::make_unique<StringLiteral>(token.value, token);
         case TokenType::ID:
             pos++;
             if (match(TokenType::LPAREN)) {
@@ -441,11 +441,11 @@ ExprPtr Parser::parse_primary() {
                         consume(TokenType::COMMA, "Expected ','", peek().line, peek().column);
                     }
                 }
-                return std::make_unique<FuncCallExpr>(token.value, std::move(func_args), token.line);
+                return std::make_unique<FuncCallExpr>(token.value, std::move(func_args), token);
             }
-            return std::make_unique<VarExpr>(token.value, token.line);
+            return std::make_unique<VarExpr>(token.value, token);
         default:
-            throw_error(file_name, file_name_in_error_printed, PARSER, "Unexpected token '" + token.value + "' (" + std::to_string(token.line) + ':' + std::to_string(token.column) + ")\n", token.line);
+            throw_error(token.file_name, PARSER, "Unexpected token '" + token.value + "' (" + std::to_string(token.line) + ':' + std::to_string(token.column) + ")\n", token.line);
     }
 }
 
@@ -458,17 +458,17 @@ ExprPtr Parser::create_compound_assignment_operator(std::string id) {
     pos++;
     switch (token.type) {
         case TokenType::PLUS_EQ:
-            return std::make_unique<BinaryExpr>(TokenType::PLUS, std::make_unique<VarExpr>(id, token.line), parse_expr(), token.line);
+            return std::make_unique<BinaryExpr>(TokenType::PLUS, std::make_unique<VarExpr>(id, token), parse_expr(), token);
         case TokenType::MINUS_EQ:
-            return std::make_unique<BinaryExpr>(TokenType::MINUS, std::make_unique<VarExpr>(id, token.line), parse_expr(), token.line);
+            return std::make_unique<BinaryExpr>(TokenType::MINUS, std::make_unique<VarExpr>(id, token), parse_expr(), token);
         case TokenType::MULT_EQ:
-            return std::make_unique<BinaryExpr>(TokenType::MULT, std::make_unique<VarExpr>(id, token.line), parse_expr(), token.line);
+            return std::make_unique<BinaryExpr>(TokenType::MULT, std::make_unique<VarExpr>(id, token), parse_expr(), token);
         case TokenType::DIV_EQ:
-            return std::make_unique<BinaryExpr>(TokenType::DIV, std::make_unique<VarExpr>(id, token.line), parse_expr(), token.line);
+            return std::make_unique<BinaryExpr>(TokenType::DIV, std::make_unique<VarExpr>(id, token), parse_expr(), token);
         case TokenType::MODULO_EQ:
-            return std::make_unique<BinaryExpr>(TokenType::MODULO, std::make_unique<VarExpr>(id, token.line), parse_expr(), token.line);
+            return std::make_unique<BinaryExpr>(TokenType::MODULO, std::make_unique<VarExpr>(id, token), parse_expr(), token);
         default: {
-            throw_error(file_name, file_name_in_error_printed, PARSER, "Unsupported compound assignment operator (" + std::to_string(token.line) + ':' + std::to_string(token.column) + ")\n", token.line);
+            throw_error(token.file_name, PARSER, "Unsupported compound assignment operator (" + std::to_string(token.line) + ':' + std::to_string(token.column) + ")\n", token.line);
         }
     }
 }
@@ -520,23 +520,23 @@ TypeValue Parser::token_type_to_type_value(Token token) {
         return TypeValue::ENUM;
     }
     else {
-        throw_error(file_name, file_name_in_error_printed, PARSER, "Expected type (" + std::to_string(token.line) + ':' + std::to_string(token.column) + ")\n", token.line);
+        throw_error(token.file_name, PARSER, "Expected type (" + std::to_string(token.line) + ':' + std::to_string(token.column) + ")\n", token.line);
     }
 }
 
 Type Parser::consume_type(bool is_const) {
     Token token = peek();
     if (!is_type(token.type)) {
-        throw_error(file_name, file_name_in_error_printed, PARSER, "Expected type (" + std::to_string(token.line) + ':' + std::to_string(token.column) + ")\n", token.line);
+        throw_error(token.file_name, PARSER, "Expected type (" + std::to_string(token.line) + ':' + std::to_string(token.column) + ")\n", token.line);
     }
     pos++;
     bool is_pointer = match(TokenType::MULT);
     return Type(token_type_to_type_value(token), token.value, is_const, is_unsigned_type(token.type), is_pointer);
 }
 
-Token Parser::peek(int rpos) {
+Token Parser::peek(int rpos) const {
     if (pos + rpos >= tokens_len) {
-        throw_error(file_name, file_name_in_error_printed, PARSER, "Index out of range: (" + std::to_string(pos + rpos) + "/" + std::to_string(tokens_len) + ")\n", peek().line);
+        throw_error(tokens[0].file_name, PARSER, "Index out of range: (" + std::to_string(pos + rpos) + "/" + std::to_string(tokens_len) + ")\n", peek().line);
     }
     return tokens[pos + rpos];
 }
@@ -547,7 +547,7 @@ Token Parser::consume(TokenType type, std::string err_msg, int line, int column)
         pos++;
         return token;
     }
-    throw_error(file_name, file_name_in_error_printed, PARSER, err_msg + " (" + std::to_string(line) + ':' + std::to_string(column) + ")\n", line);
+    throw_error(token.file_name, PARSER, err_msg + " (" + std::to_string(line) + ':' + std::to_string(column) + ")\n", line);
 }
 
 bool Parser::match(TokenType type) {

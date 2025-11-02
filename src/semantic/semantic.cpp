@@ -1,4 +1,5 @@
 #include "../../include/exception/exception.hpp"
+#include <iostream>
 #include "../../include/semantic/semantic.hpp"
 
 void SemanticAnalyzer::analyze() {
@@ -42,7 +43,7 @@ void SemanticAnalyzer::analyze_stmt(Stmt& stmt) {
         analyze_return_stmt(*rs);
     }
     else {
-        throw_error(file_name, file_name_in_error_printed, SEMANTIC, "Unsupported statement\n", stmt.line);
+        throw_error(stmt.first_token.file_name, SEMANTIC, "Unsupported statement\n", stmt.first_token.line);
     }
 }
 
@@ -51,14 +52,14 @@ void SemanticAnalyzer::analyze_var_decl_stmt(VarDeclStmt& vds) {
     while (!vars.empty()) {
         auto var_it = vars.top().find(vds.name);
         if (var_it != vars.top().end()) {
-            throw_error(file_name, file_name_in_error_printed, SEMANTIC, "Variable '" + vds.name + "' already exist\n", vds.line);
+            throw_error(vds.first_token.file_name, SEMANTIC, "Variable '" + vds.name + "' already exist\n", vds.first_token.line);
         }
         vars.pop();
     }
     
     if (vds.expr != nullptr) {
         Type expr_type = analyze_expr(*vds.expr);
-        get_common_type(vds.type, expr_type, vds.line);
+        get_common_type(vds.type, expr_type, vds.first_token);
     }
 
     variables.top().emplace(vds.name, vds.type);
@@ -77,7 +78,7 @@ void SemanticAnalyzer::analyze_func_decl_stmt(FuncDeclStmt& fds) {
                 joined_args.append(type_to_string(fds.args[i].type));
             }
         }
-        throw_error(file_name, file_name_in_error_printed, SEMANTIC, "Function '" + type_to_string(func_it->second.return_type) + ' ' + func_it->first + '(' + joined_args + ")' already exist\n", fds.line);
+        throw_error(fds.first_token.file_name, SEMANTIC, "Function '" + type_to_string(func_it->second.return_type) + ' ' + func_it->first + '(' + joined_args + ")' already exist\n", fds.first_token.line);
     }
 
     std::vector<Argument> args_copy = fds.args;
@@ -112,23 +113,23 @@ void SemanticAnalyzer::analyze_func_call_stmt(FuncCallStmt& fcs) {
                 joined_args.append(type_to_string(analyze_expr(*fcs.args[i])));
             }
         }
-        throw_error(file_name, file_name_in_error_printed, SEMANTIC, "Function '" + fcs.name + '(' + joined_args + ")' does not exist\n", fcs.line);
+        throw_error(fcs.first_token.file_name, SEMANTIC, "Function '" + fcs.name + '(' + joined_args + ")' does not exist\n", fcs.first_token.line);
     }
 
     unsigned args_size = fcs.args.size();
     for (unsigned i = 0; i < args_size; i++) {
-        get_common_type(analyze_expr(*fcs.args[i]), func_it->second.args[i].type, fcs.line);
+        get_common_type(analyze_expr(*fcs.args[i]), func_it->second.args[i].type, fcs.first_token);
     }
 }
 
 void SemanticAnalyzer::analyze_var_asgn_stmt(VarAsgnStmt& vas) {
-    Type var_type = analyze_var_expr(VarExpr(vas.name, vas.line));
+    Type var_type = analyze_var_expr(VarExpr(vas.name, vas.first_token));
     analyze_expr(*vas.expr);
 }
 
 void SemanticAnalyzer::analyze_if_stmt(IfStmt& is) {
     if (is.condition == nullptr) {
-        throw_error(file_name, file_name_in_error_printed, SEMANTIC, "Conditional expression must not be null\n", is.line);
+        throw_error(is.first_token.file_name, SEMANTIC, "Conditional expression must not be null\n", is.first_token.line);
     }
 
     for (const StmtPtr& stmt : is.true_block) {
@@ -176,18 +177,21 @@ void SemanticAnalyzer::analyze_do_while_cycle_stmt(DoWhileCycleStmt& dwcs) {
 
 void SemanticAnalyzer::analyze_break_stmt(BreakStmt& bs) {
     if (loops_blocks_deep == 0) {
-        throw_error(file_name, file_name_in_error_printed, SEMANTIC, "`break` statement must be must be inside the loop\n", bs.line);
+        throw_error(bs.first_token.file_name, SEMANTIC, "`break` statement must be must be inside the loop\n", bs.first_token.line);
     }
 }
 
 void SemanticAnalyzer::analyze_continue_stmt(ContinueStmt& cs) {
     if (loops_blocks_deep == 0) {
-        throw_error(file_name, file_name_in_error_printed, SEMANTIC, "`continue` statement must be must be inside the loop\n", cs.line);
+        throw_error(cs.first_token.file_name, SEMANTIC, "`continue` statement must be must be inside the loop\n", cs.first_token.line);
     }
 }
 
 void SemanticAnalyzer::analyze_return_stmt(ReturnStmt& rs) {
-    get_common_type(analyze_expr(*rs.expr), functions_types_stack.top(), rs.line);
+    if (functions_types_stack.empty()) {
+        throw_error(rs.first_token.file_name, SEMANTIC, "`return` statement must be must be inside the functions\n", rs.first_token.line);
+    }
+    get_common_type(analyze_expr(*rs.expr), functions_types_stack.top(), rs.first_token);
 }
 
 Type SemanticAnalyzer::analyze_expr(const Expr& expr) {
@@ -207,7 +211,7 @@ Type SemanticAnalyzer::analyze_expr(const Expr& expr) {
         return analyze_func_call_expr(*fce);
     }
     else {
-        throw_error(file_name, file_name_in_error_printed, SEMANTIC, "Unsupported expression\n", expr.line);
+        throw_error(expr.first_token.file_name, SEMANTIC, "Unsupported expression\n", expr.first_token.line);
     }
 }
 
@@ -219,7 +223,7 @@ Type SemanticAnalyzer::analyze_binary_expr(const BinaryExpr& be) {
     Type left_type = analyze_expr(*be.left);
     Type right_type = analyze_expr(*be.right);
 
-    return get_common_type(left_type, right_type, be.line);
+    return get_common_type(left_type, right_type, be.first_token);
 }
 
 Type SemanticAnalyzer::analyze_unary_expr(const UnaryExpr& ue) {
@@ -236,7 +240,7 @@ Type SemanticAnalyzer::analyze_var_expr(const VarExpr& ve) {
         vars.pop();
     }
 
-    throw_error(file_name, file_name_in_error_printed, SEMANTIC, "Variable '" + ve.name + "' does not exist\n", ve.line);
+    throw_error(ve.first_token.file_name, SEMANTIC, "Variable '" + ve.name + "' does not exist\n", ve.first_token.line);
 }
 
 Type SemanticAnalyzer::analyze_func_call_expr(const FuncCallExpr& fce) {
@@ -252,18 +256,18 @@ Type SemanticAnalyzer::analyze_func_call_expr(const FuncCallExpr& fce) {
                 joined_args.append(type_to_string(analyze_expr(*fce.args[i])));
             }
         }
-        throw_error(file_name, file_name_in_error_printed, SEMANTIC, "Function '" + fce.name + '(' + joined_args + ")' does not exist\n", fce.line);
+        throw_error(fce.first_token.file_name, SEMANTIC, "Function '" + fce.name + '(' + joined_args + ")' does not exist\n", fce.first_token.line);
     }
 
     unsigned args_size = fce.args.size();
     for (unsigned i = 0; i < args_size; i++) {
-        get_common_type(analyze_expr(*fce.args[i]), func_it->second.args[i].type, fce.line);
+        get_common_type(analyze_expr(*fce.args[i]), func_it->second.args[i].type, fce.first_token);
     }
     
     return func_it->second.return_type;
 }
 
-Type SemanticAnalyzer::get_common_type(Type left_type, Type right_type, int line) {
+Type SemanticAnalyzer::get_common_type(Type left_type, Type right_type, Token first_token) {
     if (left_type == right_type) {
         return left_type;
     }
@@ -274,7 +278,7 @@ Type SemanticAnalyzer::get_common_type(Type left_type, Type right_type, int line
         }
         else {
             if (right_type.type >= TypeValue::STRING) {
-                throw_error(file_name, file_name_in_error_printed, SEMANTIC, "There is no common type between " + type_to_string(left_type) + " and " + type_to_string(right_type) + '\n', line);
+                throw_error(first_token.file_name, SEMANTIC, "There is no common type between " + type_to_string(left_type) + " and " + type_to_string(right_type) + '\n', first_token.line);
             }
             else {
                 return (int)left_type.type > (int)right_type.type - 6 ? left_type : right_type;
@@ -282,15 +286,20 @@ Type SemanticAnalyzer::get_common_type(Type left_type, Type right_type, int line
         }
     }
     else {
-        if (right_type.type <= TypeValue::F64) {
-            return (int)left_type.type - 6 >= (int)right_type.type ? left_type : right_type;
+        if (left_type.type >= TypeValue::STRING) {
+            throw_error(first_token.file_name, SEMANTIC, "There is no common type between " + type_to_string(left_type) + " and " + type_to_string(right_type) + '\n', first_token.line);
         }
         else {
-            if (right_type.type >= TypeValue::STRING) {
-                throw_error(file_name, file_name_in_error_printed, SEMANTIC, "There is no common type between " + type_to_string(left_type) + " and " + type_to_string(right_type) + '\n', line);
+            if (right_type.type <= TypeValue::F64) {
+                return (int)left_type.type - 6 >= (int)right_type.type ? left_type : right_type;
             }
             else {
-                return left_type.type > right_type.type ? left_type : right_type;
+                if (right_type.type >= TypeValue::STRING) {
+                    throw_error(first_token.file_name, SEMANTIC, "There is no common type between " + type_to_string(left_type) + " and " + type_to_string(right_type) + '\n', first_token.line);
+                }
+                else {
+                    return left_type.type > right_type.type ? left_type : right_type;
+                }
             }
         }
     }

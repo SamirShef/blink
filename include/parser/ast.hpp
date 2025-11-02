@@ -50,13 +50,15 @@ struct Value {
 
 class Expr {
 public:
-    int line;
+    Token first_token;
+    Expr(Token ft) : first_token(ft) {}
     virtual ~Expr() = default;
 };
 
 class Stmt {
 public:
-    int line;
+    Token first_token;
+    Stmt(Token ft) : first_token(ft) {}
     virtual ~Stmt() = default;
 };
 
@@ -68,79 +70,79 @@ public:
     Value value;
     Type type;
 
-    Literal(Value v, Type t, int l) : value(v), type(t) {}
+    Literal(Value v, Type t, Token ft) : value(v), type(t), Expr(ft) {}
     virtual ~Literal() = default;
 };
 
 class I8Literal : public Literal {
 public:
-    I8Literal(std::int8_t v, int l) : Literal(Value(v), Type(TypeValue::I8, "i8"), l) {}
+    I8Literal(std::int8_t v, Token ft) : Literal(Value(v), Type(TypeValue::I8, "i8"), ft) {}
     ~I8Literal() override = default;
 };
 
 class I16Literal : public Literal {
 public:
-    I16Literal(std::int16_t v, int l) : Literal(Value(v), Type(TypeValue::I16, "i16"), l) {}
+    I16Literal(std::int16_t v, Token ft) : Literal(Value(v), Type(TypeValue::I16, "i16"), ft) {}
     ~I16Literal() override = default;
 };
 
 class I32Literal : public Literal {
 public:
-    I32Literal(std::int32_t v, int l) : Literal(Value(v), Type(TypeValue::I32, "i32"), l) {}
+    I32Literal(std::int32_t v, Token ft) : Literal(Value(v), Type(TypeValue::I32, "i32"), ft) {}
     ~I32Literal() override = default;
 };
 
 class I64Literal : public Literal {
 public:
-    I64Literal(std::int64_t v, int l) : Literal(Value(v), Type(TypeValue::I64, "i64"), l) {}
+    I64Literal(std::int64_t v, Token ft) : Literal(Value(v), Type(TypeValue::I64, "i64"), ft) {}
     ~I64Literal() override = default;
 };
 
 class F32Literal : public Literal {
 public:
-    F32Literal(std::float_t v, int l) : Literal(Value(v), Type(TypeValue::F32, "f32"), l) {}
+    F32Literal(std::float_t v, Token ft) : Literal(Value(v), Type(TypeValue::F32, "f32"), ft) {}
     ~F32Literal() override = default;
 };
 
 class F64Literal : public Literal {
 public:
-    F64Literal(std::double_t v, int l) : Literal(Value(v), Type(TypeValue::F64, "f64"), l) {}
+    F64Literal(std::double_t v, Token ft) : Literal(Value(v), Type(TypeValue::F64, "f64"), ft) {}
     ~F64Literal() override = default;
 };
 
 class U8Literal : public Literal {
 public:
-    U8Literal(std::uint8_t v, int l) : Literal(Value(v), Type(TypeValue::U8, "u8"), l) {}
+    U8Literal(std::uint8_t v, Token ft) : Literal(Value(v), Type(TypeValue::U8, "u8"), ft) {}
     ~U8Literal() override = default;
 };
 
 class U16Literal : public Literal {
 public:
-    U16Literal(std::uint16_t v, int l) : Literal(Value(v), Type(TypeValue::U16, "u16"), l) {}
+    U16Literal(std::uint16_t v, Token ft) : Literal(Value(v), Type(TypeValue::U16, "u16"), ft) {}
     ~U16Literal() override = default;
 };
 
 class U32Literal : public Literal {
 public:
-    U32Literal(std::uint32_t v, int l) : Literal(Value(v), Type(TypeValue::U32, "u32"), l) {}
+    U32Literal(std::uint32_t v, Token ft) : Literal(Value(v), Type(TypeValue::U32, "u32"), ft) {}
     ~U32Literal() override = default;
 };
 
 class U64Literal : public Literal {
 public:
-    U64Literal(std::uint64_t v, int l) : Literal(Value(v), Type(TypeValue::U64, "u64"), l) {}
+    U64Literal(std::uint64_t v, Token ft) : Literal(Value(v), Type(TypeValue::U64, "u64"), ft) {}
     ~U64Literal() override = default;
 };
 
 class BoolLiteral : public Literal {
 public:
-    BoolLiteral(bool v, int l) : Literal(Value(v), Type(TypeValue::BOOL, "bool"), l) {}
+    BoolLiteral(bool v, Token ft) : Literal(Value(v), Type(TypeValue::BOOL, "bool"), ft) {}
     ~BoolLiteral() override = default;
 };
 
 class StringLiteral : public Literal {
 public:
-    StringLiteral(std::string v, int l) : Literal(Value(v), Type(TypeValue::STRING, "string"), l) {}
+    StringLiteral(std::string v, Token ft) : Literal(Value(v), Type(TypeValue::STRING, "string"), ft) {}
     ~StringLiteral() override = default;
 };
 
@@ -150,9 +152,7 @@ public:
     ExprPtr left;
     ExprPtr right;
 
-    BinaryExpr(TokenType o, ExprPtr l, ExprPtr r, int li) : op_type(o), left(std::move(l)), right(std::move(r)) {
-        this->line = li;
-    }
+    BinaryExpr(TokenType o, ExprPtr l, ExprPtr r, Token ft) : op_type(o), left(std::move(l)), right(std::move(r)), Expr(ft) {}
     ~BinaryExpr() override = default;
 };
 
@@ -161,9 +161,7 @@ public:
     TokenType op_type;
     ExprPtr expr;
 
-    UnaryExpr(TokenType o, ExprPtr e, int l) : op_type(o), expr(std::move(e)) {
-        this->line = l;
-    }
+    UnaryExpr(TokenType o, ExprPtr e, Token ft) : op_type(o), expr(std::move(e)), Expr(ft) {}
     ~UnaryExpr() override = default;
 };
 
@@ -171,9 +169,7 @@ class VarExpr : public Expr {
 public:
     std::string name;
 
-    VarExpr(std::string n, int l) : name(n) {
-        this->line = l;
-    }
+    VarExpr(std::string n, Token ft) : name(n), Expr(ft) {}
     ~VarExpr() override = default;
 };
 
@@ -182,9 +178,7 @@ public:
     std::string name;
     std::vector<ExprPtr> args;
 
-    FuncCallExpr(std::string n, std::vector<ExprPtr> a, int l) : name(n), args(std::move(a)) {
-        this->line = l;
-    }
+    FuncCallExpr(std::string n, std::vector<ExprPtr> a, Token ft) : name(n), args(std::move(a)), Expr(ft) {}
 };
 
 class VarDeclStmt : public Stmt {
@@ -193,9 +187,7 @@ public:
     std::string name;
     ExprPtr expr;
 
-    VarDeclStmt(Type t, std::string n, ExprPtr e, int l) : type(t), name(n), expr(std::move(e)) {
-        this->line = l;
-    }
+    VarDeclStmt(Type t, std::string n, ExprPtr e, Token ft) : type(t), name(n), expr(std::move(e)), Stmt(ft) {}
     ~VarDeclStmt() override = default;
 };
 
@@ -203,14 +195,13 @@ struct Argument {
     Type type;
     std::string name;
     ExprPtr expr;
-    int line;
+    Token first_token;
 
-    Argument(Type t, std::string n, ExprPtr e, int l) : type(t), name(n), expr(std::move(e)) {
-        this->line = l;
+    Argument(Type t, std::string n, ExprPtr e, Token ft) : type(t), name(n), expr(std::move(e)), first_token(ft) {
+        this->first_token = ft;
     }
-    Argument(const Argument& other) : type(other.type), name(other.name), expr(other.expr == nullptr ? nullptr : std::make_unique<Expr>(*other.expr)) {
-        this->line = other.line;
-    }
+    Argument(const Argument& other) : type(other.type), name(other.name), expr(other.expr == nullptr ? nullptr : std::make_unique<Expr>(*other.expr)),
+                                      first_token(other.first_token) {}
 };
 
 class FuncDeclStmt : public Stmt {
@@ -220,9 +211,8 @@ public:
     std::vector<Argument> args;
     std::vector<StmtPtr> block;
 
-    FuncDeclStmt(Type t, std::string n, std::vector<Argument> a, std::vector<StmtPtr> b, int l) : return_type(t), name(n), args(std::move(a)), block(std::move(b)) {
-        this->line = l;
-    }
+    FuncDeclStmt(Type t, std::string n, std::vector<Argument> a, std::vector<StmtPtr> b, Token ft) : return_type(t), name(n), args(std::move(a)), block(std::move(b)),
+                                                                                                     Stmt(ft) {}
     ~FuncDeclStmt() override = default;
 };
 
@@ -231,9 +221,7 @@ public:
     std::string name;
     std::vector<ExprPtr> args;
 
-    FuncCallStmt(std::string n, std::vector<ExprPtr> a, int l) : name(n), args(std::move(a)) {
-        this->line = l;
-    }
+    FuncCallStmt(std::string n, std::vector<ExprPtr> a, Token ft) : name(n), args(std::move(a)), Stmt(ft) {}
     ~FuncCallStmt() override = default;
 };
 
@@ -242,9 +230,7 @@ public:
     std::string name;
     ExprPtr expr;
 
-    VarAsgnStmt(std::string n, ExprPtr e, int l) : name(n), expr(std::move(e)) {
-        this->line = l;
-    }
+    VarAsgnStmt(std::string n, ExprPtr e, Token ft) : name(n), expr(std::move(e)), Stmt(ft) {}
     ~VarAsgnStmt() override = default;
 };
 
@@ -254,9 +240,8 @@ public:
     std::vector<StmtPtr> true_block;
     std::vector<StmtPtr> false_block;
 
-    IfStmt(ExprPtr c, std::vector<StmtPtr> t, std::vector<StmtPtr> f, int l) : condition(std::move(c)), true_block(std::move(t)), false_block(std::move(f)) {
-        this->line = l;
-    }
+    IfStmt(ExprPtr c, std::vector<StmtPtr> t, std::vector<StmtPtr> f, Token ft) : condition(std::move(c)), true_block(std::move(t)), false_block(std::move(f)),
+                                                                                  Stmt(ft) {}
     ~IfStmt() override = default;
 };
 
@@ -267,10 +252,8 @@ public:
     StmtPtr iteration;
     std::vector<StmtPtr> block;
 
-    ForCycleStmt(StmtPtr ir, ExprPtr c, StmtPtr it, std::vector<StmtPtr> b, int l) : indexator(std::move(ir)), condition(std::move(c)), iteration(std::move(it)),
-                                                                                     block(std::move(b)) {
-        this->line = l;
-    }
+    ForCycleStmt(StmtPtr ir, ExprPtr c, StmtPtr it, std::vector<StmtPtr> b, Token ft) : indexator(std::move(ir)), condition(std::move(c)), iteration(std::move(it)),
+                                                                                     block(std::move(b)), Stmt(ft) {}
     ~ForCycleStmt() override = default;
 };
 
@@ -279,9 +262,7 @@ public:
     ExprPtr condition;
     std::vector<StmtPtr> block;
 
-    WhileCycleStmt(ExprPtr c, std::vector<StmtPtr> b, int l) : condition(std::move(c)), block(std::move(b)) {
-        this->line = l;
-    }
+    WhileCycleStmt(ExprPtr c, std::vector<StmtPtr> b, Token ft) : condition(std::move(c)), block(std::move(b)), Stmt(ft) {}
     ~WhileCycleStmt() override = default;
 };
 
@@ -290,25 +271,19 @@ public:
     ExprPtr condition;
     std::vector<StmtPtr> block;
 
-    DoWhileCycleStmt(ExprPtr c, std::vector<StmtPtr> b, int l) : condition(std::move(c)), block(std::move(b)) {
-        this->line = l;
-    }
+    DoWhileCycleStmt(ExprPtr c, std::vector<StmtPtr> b, Token ft) : condition(std::move(c)), block(std::move(b)), Stmt(ft) {}
     ~DoWhileCycleStmt() override = default;
 };
 
 class BreakStmt : public Stmt {
 public:
-    BreakStmt(int l) {
-        this->line = l;
-    }
+    BreakStmt(Token ft) : Stmt(ft) {}
     ~BreakStmt() override = default;
 };
 
 class ContinueStmt : public Stmt {
 public:
-    ContinueStmt(int l) {
-        this->line = l;
-    }
+    ContinueStmt(Token ft) : Stmt(ft) {}
     ~ContinueStmt() override = default;
 };
 
@@ -316,8 +291,6 @@ class ReturnStmt : public Stmt {
 public:
     ExprPtr expr;
 
-    ReturnStmt(ExprPtr e, int l) : expr(std::move(e)) {
-        this->line = l;
-    }
+    ReturnStmt(ExprPtr e, Token ft) : expr(std::move(e)), Stmt(ft) {}
     ~ReturnStmt() override = default;
 };

@@ -19,6 +19,7 @@
 #include "../include/codegen/codegen.hpp"
 #include "../include/parser/parser.hpp"
 #include "../include/lexer/lexer.hpp"
+#include <filesystem>
 #include <iostream>
 #include <fstream>
 
@@ -58,25 +59,26 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     
+    std::filesystem::path absolute_path = std::filesystem::absolute(argv[1]);
     std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
-    Lexer lexer(content, argv[1]);
+    Lexer lexer(content, absolute_path.string());
     std::vector<Token> tokens = lexer.tokenize();
 
     /* for (Token token : tokens) {
         std::cout << token_to_string(token) << '\n';
     } */
 
-    Parser parser(tokens, argv[1]);
+    Parser parser(tokens);
     std::vector<StmtPtr> stmts = parser.parse();
 
     std::cout << "CODE ANALYZING...\n";
-    SemanticAnalyzer semantic(stmts, argv[1]);
+    SemanticAnalyzer semantic(stmts);
     semantic.analyze();
     
     std::cout << "CODE ANALYZING SUCCESS. CODE GENERATING...\n";
 
-    CodeGenerator codegen(source_path, stmts, argv[1]);
+    CodeGenerator codegen(source_path, stmts);
     codegen.generate();
     codegen.print_ir();
     std::unique_ptr<llvm::Module> module = codegen.get_module();
